@@ -65,3 +65,4 @@ command line utility.
     >>> from getdc import get_certificate_dns
     >>> result = get_certificate_dns("hit-testing.nist.gov")
     >>> print result
+    >>> {"status": 200, "message": "Certificate found."}
