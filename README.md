@@ -15,6 +15,25 @@ certificate, or certificates, as a `.pem` file in the local file system.
 A top level boolean variable `is_found` contains the flag indicating if the
 certificate was found or not.
 
+Installation
+------------
+
+You need to make sure you have the prerequisites for the application. The following instructions are for Ubuntu.
+
+    sudo apt-get install -y python-ldap python-dnspython
+    
+...then you can install with pip
+    
+    sudo pip install getdc
+    
+... or to install from source (on Ubuntu):
+
+
+    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev libssl-dev
+    sudo pip install getdc
+  
+
+
 Command Line Utility
 --------------------
 
