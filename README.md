@@ -10,8 +10,8 @@ discovery, however, it can be used to fetch any x509 certificate from LDAP
 or DNS. There is nothing specific to Direct about this tool.
 
 The command line utility and API attempts to fetch an x509 
-certificate from DNS and.or LDAP.  If found, the  utility also saves the
-certificate, or certificates, as a `.pem` file in the local file system.
+certificate, or certificates, from DNS and.or LDAP.  If found, the utility
+saves the certificate, or certificates, as a `.pem` file in the local file system.
 A top level boolean variable `is_found` contains the flag indicating if the
 certificate was found or not.
 
