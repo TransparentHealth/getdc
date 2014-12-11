@@ -26,10 +26,10 @@ You need to make sure you have the prerequisites for the application. The follow
     
     sudo pip install getdc
     
-... or to install from source (on Ubuntu):
+...or to install from source (on Ubuntu):
 
 
-    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev libssl-dev
+    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev
     sudo pip install getdc
   
 
