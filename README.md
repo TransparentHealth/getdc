@@ -1,25 +1,45 @@
-Get a Direct Certificate
-========================
+Get Direct Certificate - A Command Line Utility and API for Certificate Discovery
+=================================================================================
 
-version 0.1
+Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-This tools is designed to simplify Direct certificate 
-discovery and verification.
+Version 0.3
 
-This library and command line utility attempts to fetch an x509 
-certificate from DNS.  A JSON response indicates wheither the 
-certificate was found or not is returned to stout. If found, the 
-utility also saves the certificate as a .pem file in the local file system.
+The `getdc` tool is designed to simplify and automate Direct certificate
+discovery, however, it can be used to fetch any x509 certificate from LDAP
+or DNS. There is nothing specific to Direct about this tool.
+
+The command line utility and API attempts to fetch an x509 
+certificate from DNS and.or LDAP.  If found, the  utility also saves the
+certificate, or certificates, as a `.pem` file in the local file system.
+A top level boolean variable `is_found` contains the flag indicating if the
+certificate was found or not.
 
 Command Line Utility
 --------------------
 
-    > python getdc.py hit-testing.nist.gov
+A response is printed as JSON to stout indicating wheather the certificate was found or not via LDAP or DNS.
+
+
+Example 1: Get a certificate via DNS
+
+    $ python getdc.py hit-testing.nist.gov
     
     {
-    "status": 200, 
-    "message": "Certificate found."
-    }
+        "is_found": true,
+        "dns": {
+            "status": 200, 
+            "message": "Certificate hit-testing.nist.gov found.", 
+            "is_found": true        }, 
+        "ldap": {
+            "status": 404, 
+            "message": "No certificate found.", 
+            "is_found": false, 
+            "details": "No LDAP server found."
+        }
+   }
+
+Example 1.1: Print out the resulting PEM certificate as text
 
     > cat hit-testing.nist.gov.pem
     -----BEGIN CERTIFICATE-----
@@ -44,25 +64,69 @@ Command Line Utility
     GneC5c7K3HW1/GmvYwTybLeDM+mnDzKD/6Nb2qXTUffHoTWtHF8M
     -----END CERTIFICATE---- 
 
-    > python getdc.py foo.example.com
+Example 2: Get a non-existent domain or one not running LDAP or DNS.
+
+
+    $ python getdc.py foo.example.com
     {
-    "status": 404,
-    "message": "Certificate not found."
+        "is_found": false, 
+        "dns": {
+            "status": 404, 
+            "message": "Certificate not found.", 
+            "is_found": false, 
+            "details": "No DNS server found."
+        }, 
+        "ldap": {
+            "status": 404, 
+            "message": "No certificate found.", 
+            "is_found": false, 
+            "details": "No LDAP server found."
+        }
     }
 
-    > python getdc.py hit-testing.nist.gov
+Example 3: Get a certificate via LDAP.
+
+    $ python getdc.py domain2.demo.direct-test.com
+    
     {
-    "status": 412,
-    "message": "Network failure."
+            "is_found": true, 
+            "dns": {
+                "status": 404, 
+                "message": "The server did not provide an answer. No certificate found.", 
+                "is_found": false
+        }, 
+        "ldap": {
+            "status": 200, 
+            "message": "certificate domain2.demo.direct-test.com found.", 
+            "is_found": true
+        }
     }
 
-Library
--------
+Example 3.1: Print out the contents of the certificate with openssl. (There are many tools for this purpose. Openssl is just an example.)
 
-The function `get_certificate_dns` performs the same function as the
-command line utility.
+    $ openssl x509 -in domain2.demo.direct-test.com.pem -inform PEM -noout -text
+    
+    Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 1535297520576733558 (0x154e78f5ea83a176)
+    Signature Algorithm: sha1WithRSAEncryption
+        Issuer: CN=demo.direct-test.com_ca
+        .
+        .
+        .
+        
 
-    >>> from getdc import get_certificate_dns
-    >>> result = get_certificate_dns("hit-testing.nist.gov")
-    >>> print result
-    >>> {"status": 200, "message": "Certificate found."}
+
+Application Programming Interface (API) for Python
+--------------------------------------------------
+
+The `getdc` Python library has three functions; `get_certificate_dns`, 'get_certificate_ldap', and `get_certificate` which
+performs both checks as illustrated above. All functions return a Python `dict` that can easily be rendered as JSON
+Below is an example: 
+
+
+    >>> from getdc import get_certificate
+    >>> result = get_certificate("hit-testing.nist.gov")
+    >>> result['is_found']
+    >>> True                   #A certificate was found by at least one of the methods
