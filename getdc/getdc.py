@@ -11,35 +11,74 @@ import ldap
 
 def get_certificate(endpoint):
     result = {} 
-    result['dns']  = get_certificate_dns(endpoint)
-    result['ldap'] = get_certificate_ldap(endpoint)        
-    
-    if result['dns']['is_found'] or result['ldap']['is_found']:
-        result['is_found']=True
+    if endpoint.__contains__("@"):
+        email_endpoint = True
+        email_username, email_domain = endpoint.split("@", 1)
     else:
-        result['is_found']=False
+        email_endpoint = False
+    
+    if email_endpoint:
+        email_domain_bound_dns  = get_certificate_dns(email_domain)
+        email_domain_bound_ldap = get_certificate_ldap(email_domain)
+      
+    
+        if email_domain_bound_dns['is_found'] or email_domain_bound_ldap['is_found']:
+            result['domain_bound_cert'] = True
+            result['is_found']          = True
+            result['dns']               = email_domain_bound_dns
+            result['ldap']              = email_domain_bound_ldap
+             
+        else:
+            #Try it a 2nd way, and try to get the email-bound certificate.
+            endpoint_email_bound_dns  = get_certificate_dns(endpoint)
+            endpoint_email_bound_ldap = get_certificate_ldap(endpoint)
+            if endpoint_email_bound_dns['is_found'] or endpoint_email_bound_ldap['is_found']:
+                result['email_bound_cert'] = True
+                result['is_found']         = True
+                result['dns']              = endpoint_email_bound_dns 
+                result['ldap']             = endpoint_email_bound_ldap
+            else:
+                result['dns']               = email_domain_bound_dns
+                result['ldap']              = email_domain_bound_ldap
+            
+    else:
+        # Appears to be domain only     
+    
+        result['dns']  = get_certificate_dns(endpoint)
+        result['ldap'] = get_certificate_ldap(endpoint)        
+        
+        if result['dns']['is_found'] or result['ldap']['is_found']:
+            result['is_found']=True
+        else:
+            result['is_found']=False
     return result    
 
     
 def get_certificate_dns(endpoint, response={"is_found":False}):
-        endpoint =  endpoint.replace("@", ".")
-        try:
         
+        endpoint =  endpoint.replace("@", ".")
+        
+        try:
             answers = dns.resolver.query(endpoint, 'CERT')
+            i=1
             for rdata in answers:
-                
-                fn = "%s_%s.pem" % (endpoint)
-                
+                if i > 1:
+                        fn = "%s_%s.pem" % (endpoint, i)
+                else:
+                        fn = "%s.pem" % (endpoint)
                 fh = open(fn, "w") 
                 fh.writelines("-----BEGIN CERTIFICATE-----\n")
                 fh.writelines(base64.encodestring(rdata.certificate).rstrip())
                 fh.writelines("\n-----END CERTIFICATE-----\n")
                 fh.close()
+                i+=1 
             msg = "certificate %s found." % (endpoint)
-            response.update({"status": 200, "message": msg})
+            response.update({"status": 200, "message": msg,
+                             "is_found": True})
                 
         except dns.resolver.NXDOMAIN:
-            response.update({"status": 404, "message": "Certificate not found.", "details" : "No DNS server found."})
+            response.update({"status": 404, "message": "Certificate not found.",
+                             "details" : "No DNS server found."})
         
         except dns.resolver.NoNameservers:
             response.update({"status": 412, "message": "Network failure. No certificate found.",
@@ -98,14 +137,12 @@ def get_certificate_ldap(endpoint, response={"is_found":False}):
     cert_ders = ["".join(r[1][0][1]['userCertificate']) for r in ldap_results]      
     i = 1
     
-    
-    print len(cert_ders)
     for c in cert_ders:
         
         if i > 1:
             fn = "%s_%s.pem" % (endpoint, i)
         else:
-            fn = "%s.pem" % (endpoint)
+            fn = "%s.pem" % (endpoint)    
             
         fh = open(fn, "w") 
         fh.writelines("-----BEGIN CERTIFICATE-----\n")
@@ -126,11 +163,10 @@ if __name__ == "__main__":
     #Get the file from the command line
     if len(sys.argv)<2:
         print "You must suppy an email or endpoint."
-        print "For example, jon@example.com or jon.example.com"
+        print "For example, jon@direct.example.com or direct.example.com"
         print "Usage: get_certificate_dns [email/endpoint]"
         sys.exit(1)
     else:
         endpoint = sys.argv[1]
         result = get_certificate(endpoint)
         print json.dumps(result, indent=4)
-
