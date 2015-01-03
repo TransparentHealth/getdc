@@ -3,17 +3,25 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.3
+Version 0.5
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
-or DNS. There is nothing specific to Direct about this tool.
+or DNS.
 
 The command line utility and API attempts to fetch an x509 
 certificate, or certificates, from DNS and.or LDAP.  If found, the utility
 saves the certificate, or certificates, as a `.pem` file in the local file system.
 A top level boolean variable `is_found` contains the flag indicating if the
 certificate was found or not.
+
+If an email address is presented the tool will first attempt to look up and
+return a domain bound certificate.  If that fails, the tool will attempt to
+look up an email-bound certificate. The response will indicate wheather a domain-bound
+or email-bound certificate was retrieved. For this feature to work, use the "@" symbol
+in the endpoint and not the DNS representation.  E.g. "john@direct.example.com"
+not "john.direct.example.com".
+
 
 Installation
 ------------
@@ -49,7 +57,8 @@ Example 1: Get a certificate via DNS
         "dns": {
             "status": 200, 
             "message": "Certificate hit-testing.nist.gov found.", 
-            "is_found": true        }, 
+            "is_found": true
+            }, 
         "ldap": {
             "status": 404, 
             "message": "No certificate found.", 
@@ -140,12 +149,18 @@ Example 3.1: Print out the contents of the certificate with openssl. (There are 
 Application Programming Interface (API) for Python
 --------------------------------------------------
 
-The `getdc` Python library has three functions; `get_certificate_dns`, 'get_certificate_ldap', and `get_certificate` which
-performs both checks as illustrated above. All functions return a Python `dict` that can easily be rendered as JSON
+The `getdc` Python library has three functions; `get_certificate_dns`,
+`get_certificate_ldap`, and `get_certificate`.  `get_certificate` performs both
+`get_certificate_dns` and `get_certificate_ldap` checks as illustrated above. All functions
+return a Python `dict` that can easily be rendered as JSON.
+
+
 Below is an example: 
 
 
     >>> from getdc import get_certificate
+    >>> import json
     >>> result = get_certificate("hit-testing.nist.gov")
     >>> result['is_found']
-    >>> True                   #A certificate was found by at least one of the methods
+    >>> True   # A certificate was found by at least one of the methods
+    >>> json_result  = loads(result, indent=4)
