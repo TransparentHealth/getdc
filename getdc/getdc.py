@@ -40,6 +40,7 @@ def get_certificate(endpoint):
             else:
                 result['dns']               = email_domain_bound_dns
                 result['ldap']              = email_domain_bound_ldap
+                result['is_found']          = False
             
     else:
         # Appears to be domain only     
@@ -96,20 +97,25 @@ def get_certificate_ldap(endpoint, response={"is_found":False}):
     
     try:
         ldap_servers = dns.resolver.query("_ldap._tcp."+endpoint, 'SRV').response.answer[0].items
-        
+        error=False
     except dns.resolver.NoNameservers:
         response.update({"status": 412, "message": "Network failure. "
-                    "details" "You appear to be disconnected from the Internet.",})
-        return response
+                    "details" "You appear to be disconnected from the Internet.",
+                    "is_found":False })
+        error=True
 
     except dns.resolver.NXDOMAIN:
         response.update({"status": 404, "message": "No certificate found.",
-                    "details" : "No LDAP server found." })
-        return response
+                    "details" : "No LDAP server found.","is_found":False  })
+        error=Truee
 
     except dns.resolver.NoAnswer:
         response.update( {"status": 404, "message": "No certificate found.",
-                    "details" :"The server did not provide an answer."})
+                    "details" :"The server did not provide an answer.",
+                    "is_found":False })
+        error=True
+   
+    if error:
         return response
         
         
@@ -152,8 +158,7 @@ def get_certificate_ldap(endpoint, response={"is_found":False}):
         i += 1
 
     msg = "certificate %s found." % (endpoint)
-    is_found= True
-    response.update({"status": 200, "message": msg, "is_found": is_found})    
+    response.update({"status": 200, "message": msg, "is_found": True})    
         
     return response   
 
