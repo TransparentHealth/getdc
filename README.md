@@ -168,4 +168,4 @@ Below is an example:
     >>> result = verify_certificate("hit-testing.nist.gov")
     >>> result['is_found']
     >>> True   # A certificate was found by at least one of the methods
-    >>> json_result  = json.loads(result, indent=4)
+    >>> json_result  = json.dumps(result, indent=4)
