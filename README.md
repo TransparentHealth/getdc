@@ -3,7 +3,7 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.8
+Version 0.9
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
@@ -45,12 +45,17 @@ You need to make sure you have the prerequisites for the application. The follow
 Command Line Utility
 --------------------
 
-A response is printed as JSON to stout indicating wheather the certificate was found or not via LDAP or DNS.
+A response is printed as JSON to stout indicating wheather the certificate was found or
+not via LDAP or DNS.
 
+Usage:
+    
+    
+    get_certificate_dns [email/endpoint] [download Certificate Y/N]
 
-Example 1: Get a certificate via DNS
+Example 1: Discover a certificate via DNS and download the certificate
 
-    $ python getdc.py hit-testing.nist.gov
+    $ python getdc.py hit-testing.nist.gov Y
     
     {
         "is_found": true,
@@ -95,7 +100,7 @@ Example 1.1: Print out the resulting PEM certificate as text
 Example 2: Get a non-existent domain or one not running LDAP or DNS.
 
 
-    $ python getdc.py foo.example.com
+    $ python getdc.py foo.example.com Y
     {
         "is_found": false, 
         "dns": {
@@ -114,7 +119,7 @@ Example 2: Get a non-existent domain or one not running LDAP or DNS.
 
 Example 3: Get a certificate via LDAP.
 
-    $ python getdc.py domain2.demo.direct-test.com
+    $ python getdc.py domain2.demo.direct-test.com Y
     
     {
             "is_found": true, 
