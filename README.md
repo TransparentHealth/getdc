@@ -29,17 +29,17 @@ Installation
 You need to make sure you have the prerequisites for the application. The following instructions are for Ubuntu.
 
     sudo apt-get install -y python-ldap python-dnspython
-    
+
 ...then you can install with pip
-    
+
     sudo pip install getdc
-    
+
 ...or to install from source (on Ubuntu):
 
 
     sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev
     sudo pip install getdc
-  
+
 
 
 Command Line Utility
@@ -151,16 +151,15 @@ Example 3.1: Print out the contents of the certificate with openssl. (There are 
 
 
 
-Application Programming Interface (API) for Python
+Application Programming Interface (API) for Python`get_certificate_dns
 --------------------------------------------------
 
-The `getdc` Python library has three functions; `get_certificate_dns`,
-`get_certificate_ldap`, and `get_certificate`.  `get_certificate` performs both
-`get_certificate_dns` and `get_certificate_ldap` checks as illustrated above. All functions
-return a Python `dict` that can easily be rendered as JSON.
+The `getdc` Python library has six functions, 3 get functions and 3 validate functions. 
+The get functions are `get_certificate_dns`, `get_certificate_ldap`, and `get_certificate` both download certificates and return them to stout.  `get_certificate` performs both
+`get_certificate_dns` and `get_certificate_ldap` functions.  The verify functions are `validate_certificate_dns`, `validate_certificate_ldap`, and `validate_certificate`. These functions return the JSON status document described above. The `validate_certificate` function performs the actions of both `validate_certificate_dns` and `validate_certificate_ldap`.
 
-
-Below is an example: 
+\
+Below is an example of verify_certificate: 
 
 
     >>> from getdc.getdc import verify_certificate
