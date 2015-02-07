@@ -138,7 +138,7 @@ Example 3: Get a certificate via LDAP.
 Example 3.1: Print out the contents of the certificate with openssl. (There are many tools for this purpose. Openssl is just an example.)
 
     $ openssl x509 -in domain2.demo.direct-test.com.pem -inform PEM -noout -text
-    
+
     Certificate:
     Data:
         Version: 3 (0x2)
@@ -148,7 +148,7 @@ Example 3.1: Print out the contents of the certificate with openssl. (There are 
         .
         .
         .
-        
+
 
 
 Application Programming Interface (API) for Python
@@ -163,9 +163,9 @@ return a Python `dict` that can easily be rendered as JSON.
 Below is an example: 
 
 
-    >>> from getdc.getdc import get_certificate
+    >>> from getdc.getdc import verify_certificate
     >>> import json
-    >>> result = get_certificate("hit-testing.nist.gov")
+    >>> result = verify_certificate("hit-testing.nist.gov")
     >>> result['is_found']
     >>> True   # A certificate was found by at least one of the methods
-    >>> json_result  = loads(result, indent=4)
+    >>> json_result  = json.loads(result, indent=4)
