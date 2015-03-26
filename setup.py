@@ -67,7 +67,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.9",
+      version="0.9.1",
       description="Library of tools for fetching an x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors. 
           Requires dnspython and python-ldap to be installed. python-dev libldap2-dev libsasl2-dev needs to be installed on your system.""",
@@ -76,7 +76,7 @@ setup(name="getdc",
       url="https://gitbub.com/aviars/getdc",
       download_url="https://gitbub.com/aviars/getdc/tarball/master",
       install_requires=[
-        'dnspython', 'python-ldap'],
+        'dnspython', 'python-ldap', 'pyopenssl'],
       packages=packages,
       include_package_data=True,
       scripts=['getdc/getdc.py',]

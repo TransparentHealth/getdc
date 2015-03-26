@@ -3,7 +3,7 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.9
+Version 0.9.1
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
@@ -28,16 +28,16 @@ Installation
 
 You need to make sure you have the prerequisites for the application. The following instructions are for Ubuntu.
 
-    sudo apt-get install -y python-ldap python-dnspython
+    sudo apt-get install -y python-ldap python-dnspython python-openssl
 
 ...then you can install with pip
 
     sudo pip install getdc
 
-...or to install from source (on Ubuntu):
+...or to install from source or into a virtualenv (on Ubuntu):
 
 
-    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev
+    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev libffi-dev
     sudo pip install getdc
 
 
@@ -58,19 +58,24 @@ Example 1: Discover a certificate via DNS and download the certificate
     $ python getdc.py hit-testing.nist.gov Y
     
     {
-        "is_found": true,
+        "is_found": true, 
         "dns": {
             "status": 200, 
-            "message": "Certificate hit-testing.nist.gov found.", 
+            "cert_details": [
+                {
+                    "is_expired": false
+                }
+            ], 
+            "message": "The certificate hit-testing.nist.gov was found.", 
             "is_found": true
-            }, 
+        }, 
         "ldap": {
             "status": 404, 
             "message": "No certificate found.", 
             "is_found": false, 
-            "details": "No LDAP server found."
+            "details": "No LDAP server was found."
         }
-   }
+    }
 
 Example 1.1: Print out the resulting PEM certificate as text
 

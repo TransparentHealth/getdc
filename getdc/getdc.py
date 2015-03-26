@@ -8,6 +8,15 @@ import dns.query
 import base64
 import dns.resolver
 import ldap
+from  OpenSSL import crypto
+#from  OpenSSL import crypto
+#if x509.has_expired():
+#      print "expired"
+#   else:
+#      print "has expired."
+
+#x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert)
+
 
 def get_certificate(endpoint, save_to_disk= False, file_extension="pem"):
     response = ""
@@ -114,6 +123,7 @@ def validate_certificate_dns(endpoint, download_certificate=False, response={"is
         try:
             answers = dns.resolver.query(endpoint, 'CERT')
             i=1
+            cert_list = []
             for rdata in answers:
                 if download_certificate:
                     if i > 1:
@@ -125,10 +135,23 @@ def validate_certificate_dns(endpoint, download_certificate=False, response={"is
                     fh.writelines(base64.encodestring(rdata.certificate).rstrip())
                     fh.writelines("\n-----END CERTIFICATE-----\n")
                     fh.close()
-                    i+=1 
+                    
+                #Create a cert object so we can inspect it for more details
+                cert_string = "-----BEGIN CERTIFICATE-----\n" +\
+                              base64.encodestring(rdata.certificate).rstrip() +\
+                              "\n-----END CERTIFICATE-----\n"
+                x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
+                
+                #Is the cert expired ?
+                if x509.has_expired():
+                    cert_detail = {"is_expired": True}    
+                else:
+                    cert_detail = {"is_expired": False}
+                #Add it to the list (we use a list beacuse there can be more than one.)
+                cert_list.append(cert_detail)    
             msg = "The certificate %s was found." % (endpoint)
             response.update({"status": 200, "message": msg,
-                             "is_found": True})
+                             "is_found": True, "cert_details": cert_list})
                 
         except dns.resolver.NXDOMAIN:
             response.update({"status": 404, "message": "Certificate not found.",
@@ -199,7 +222,7 @@ def validate_certificate_ldap(endpoint, download_certificate=False, response={"i
     # Extract binary (DER) certs from responses
     cert_ders = ["".join(r[1][0][1]['userCertificate']) for r in ldap_results]      
     i = 1
-    
+    cert_list = []
     for c in cert_ders:
         if download_certificate:
             if i > 1:
@@ -212,10 +235,27 @@ def validate_certificate_ldap(endpoint, download_certificate=False, response={"i
             fh.writelines(base64.encodestring(c).rstrip())
             fh.writelines("\n-----END CERTIFICATE-----\n")
             fh.close()
-            i += 1
+        #Create a cert object so we can inspect it for more details
+        cert_string = "-----BEGIN CERTIFICATE-----\n" +\
+                      base64.encodestring(c).rstrip() +\
+                      "\n-----END CERTIFICATE-----\n"
+        x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
+                
+        #Is the cert expired ?
+        if x509.has_expired():
+            cert_detail = {"is_expired": True}    
+        else:
+            cert_detail = {"is_expired": False}
+        #Add it to the list (we use a list beacuse there can be more than one.)
+        cert_list.append(cert_detail)    
+        
+        i += 1
+        
 
     msg = "The certificate %s was found." % (endpoint)
-    response.update({"status": 200, "message": msg, "is_found": True})    
+    
+    response.update({"status": 200, "message": msg, "is_found": True,
+                     "cert_details": cert_list})    
         
     return response   
 
