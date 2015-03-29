@@ -3,7 +3,7 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.9.1
+Version 0.9.4
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
@@ -51,7 +51,7 @@ not via LDAP or DNS.
 Usage:
     
     
-    get_certificate_dns [email/endpoint] [download Certificate Y/N]
+    getdc [email/endpoint] [download Certificate Y/N]
 
 Example 1: Discover a certificate via DNS and download the certificate
 
@@ -140,7 +140,9 @@ Example 3: Get a certificate via LDAP.
         }
     }
 
-Example 3.1: Print out the contents of the certificate with openssl. (There are many tools for this purpose. Openssl is just an example.)
+Example 3.1: Print out the contents of the certificate with openssl.
+
+There are many tools for this purpose. Openssl is just an example.
 
     $ openssl x509 -in domain2.demo.direct-test.com.pem -inform PEM -noout -text
 
@@ -159,17 +161,23 @@ Example 3.1: Print out the contents of the certificate with openssl. (There are 
 Application Programming Interface (API) for Python`get_certificate_dns
 --------------------------------------------------
 
-The `getdc` Python library has six functions, 3 get functions and 3 validate functions. 
-The get functions are `get_certificate_dns`, `get_certificate_ldap`, and `get_certificate` both download certificates and return them to stout.  `get_certificate` performs both
-`get_certificate_dns` and `get_certificate_ldap` functions.  The verify functions are `validate_certificate_dns`, `validate_certificate_ldap`, and `validate_certificate`. These functions return the JSON status document described above. The `validate_certificate` function performs the actions of both `validate_certificate_dns` and `validate_certificate_ldap`.
+The DCert class six functions; 3 get functions and 3 validate functions. 
+The get functions are `get_certificate_dns`, `get_certificate_ldap`, and
+`get_certificate`
+both download certificates and return them to stout.  `get_certificate` performs both
+`get_certificate_dns` and `get_certificate_ldap` functions.  The verify functions are
+`validate_certificate_dns`, `validate_certificate_ldap`, and `validate_certificate`.
+These functions return the JSON status document described above. The `validate_certificate`
+function performs the actions of both `validate_certificate_dns` and `validate_certificate_ldap`.
 
-\
+
 Below is an example of verify_certificate: 
 
 
-    >>> from getdc.getdc import verify_certificate
+    >>> from getdc.getdc import DCert
     >>> import json
-    >>> result = verify_certificate("hit-testing.nist.gov")
+    >>>  d = DCert("hit-testing.nist.gov")
+    >>> result = d.verify_certificate()
     >>> result['is_found']
     >>> True   # A certificate was found by at least one of the methods
     >>> json_result  = json.dumps(result, indent=4)
