@@ -16,16 +16,18 @@ class DCert:
     def __init__(self, endpoint,
                  download_certificate="N",
                  save_to_disk=True,
-                 file_extension="pem"):
+                 file_extension="pem",):
         
         self.endpoint = endpoint
-        pass
+        self.result = {}
+        self.ldap_response = {}
+        self.dns_response = {}
+
 
         
     
 
     def get_certificate(self, save_to_disk= False, file_extension="pem"):
-        response = ""
         if self.endpoint.__contains__("@"):
             email_endpoint = True
             email_username, email_domain = self.endpoint.split("@", 1)
@@ -62,8 +64,8 @@ class DCert:
         else:
             # Appears to be domain only     
         
-            dns_response  = self.get_certificate_dns(self.endpoint,  save_to_disk, file_extension)
-            ldap_response = self.get_certificate_ldap(self.endpoint,  save_to_disk, file_extension)        
+            dns_response  = self.get_certificate_dns(save_to_disk, file_extension)
+            ldap_response = self.get_certificate_ldap(save_to_disk, file_extension)        
             
             if dns_response.startswith("-----BEGIN CERTIFICATE-----"):
                 response = response + dns_response
@@ -74,34 +76,46 @@ class DCert:
         if not response:
             response = "No certificate was found via LDAP or DNS."
         
-        return response
+        self.response = response
+        return self.response
    
 
         
-    def validate_certificate(self, download_certificate = False, result={}):
-                
+    def validate_certificate(self, download_certificate = False):
         
+        result = {}                
+        
+        #Check to see if there is an @ symbol to detect email;
         if self.endpoint.__contains__("@"):
             email_endpoint = True
             email_username, email_domain = self.endpoint.split("@", 1)
+            self.email = self.endpoint
         else:
+            #Its the domain only
             email_endpoint = False
         
+        #If an email address was given
         if email_endpoint:
-            email_domain_bound_dns  = self.validate_certificate_dns(email_domain, download_certificate)
-            email_domain_bound_ldap = self.validate_certificate_ldap(email_domain, download_certificate)
+             #If an email address was given    
+            #First try the validation  against the domain part only
+            self.endpoint = email_domain
+            email_domain_bound_dns  = self.validate_certificate_dns(download_certificate)
+            email_domain_bound_ldap = self.validate_certificate_ldap(download_certificate)
           
-        
+            #Check to see if  we found any domain bound certificates
             if email_domain_bound_dns['is_found'] or email_domain_bound_ldap['is_found']:
+                #Since we did, stop there and return the results
                 result['domain_bound_cert'] = True
                 result['is_found']          = True
                 result['dns']               = email_domain_bound_dns
                 result['ldap']              = email_domain_bound_ldap
                  
             else:
-                #Try it a 2nd way, and try to get the email-bound certificate.
-                endpoint_email_bound_dns  = self.validate_certificate_dns(self.endpoint, download_certificate)
-                endpoint_email_bound_ldap = self.validate_certificate_ldap(self.endpoint, download_certificate)
+                #Since no domain certs were found, try it a 2nd way.
+                #Ty to get the email-bound certificate.
+                self.endpoint =self.email
+                endpoint_email_bound_dns  = self.validate_certificate_dns(download_certificate)
+                endpoint_email_bound_ldap = self.validate_certificate_ldap(download_certificate)
                 if endpoint_email_bound_dns['is_found'] or endpoint_email_bound_ldap['is_found']:
                     result['email_bound_cert'] = True
                     result['is_found']         = True
@@ -122,21 +136,21 @@ class DCert:
                 result['is_found']=True
             else:
                 result['is_found']=False
-        
-        return result    
+        self.result = result
+        return self.result    
     
 
             
-    def validate_certificate_dns(self, download_certificate=False,
-                                 response={"is_found":False}):
-        cert_list = []
-
+    def validate_certificate_dns(self, download_certificate=False):
+        
+        response = {"is_found":False}
+        dns_cert_list = []
         self.endpoint =  self.endpoint.replace("@", ".")
         
         try:
             answers = dns.resolver.query(self.endpoint, 'CERT')
             i=1
-            cert_list = []
+            
             for rdata in answers:
                 if download_certificate:
                     if i > 1:
@@ -160,11 +174,16 @@ class DCert:
                     cert_detail = {"is_expired": True}    
                 else:
                     cert_detail = {"is_expired": False}
+                #Add other info    
+                cert_detail['serial_number'] =  x509.get_serial_number()
+                cert_detail['issuer'] =  dict(x509.get_issuer().get_components())
+                
+                    
                 #Add it to the list (we use a list beacuse there can be more than one.)
-                cert_list.append(cert_detail)    
+                dns_cert_list.append(cert_detail)    
             msg = "The certificate %s was found." % (self.endpoint)
             response.update({"status": 200, "message": msg,
-                             "is_found": True, "cert_details": cert_list})
+                             "is_found": True, "cert_details": dns_cert_list})
                 
         except dns.resolver.NXDOMAIN:
             response.update({"status": 404, "message": "Certificate not found.",
@@ -182,12 +201,15 @@ class DCert:
         except dns.exception.Timeout:
              response.update({"status": 500, "message": "Timeout",
                 "details": "The certifcate may exist but or your intetrnet service provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."})
-        return response   
+        self.dns_response = response
+        return self.dns_response
                     
-    def validate_certificate_ldap(self, download_certificate, response={"is_found":False}):
+    def validate_certificate_ldap(self, download_certificate):
+        response = {"is_found":False}
+        ldap_cert_list = []
         error = False
         self.endpoint =  self.endpoint.replace("@", ".")   
-        cert_list = []
+
         try:
             ldap_servers = dns.resolver.query("_ldap._tcp."+self.endpoint, 'SRV').response.answer[0].items
             error=False
@@ -254,27 +276,31 @@ class DCert:
             x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
                     
             #Is the cert expired ?
+            cert_detail = {}
+            
             if x509.has_expired():
-                cert_detail = {"is_expired": True}    
+                cert_detail["is_expired"] =True    
             else:
-                cert_detail = {"is_expired": False}
+                cert_detail["is_expired"]  = False
+            cert_detail['serial_number'] =  x509.get_serial_number()
+            cert_detail['issuer'] =  dict(x509.get_issuer().get_components())
+            
             #Add it to the list (we use a list beacuse there can be more than one.)
-            cert_list.append(cert_detail)    
+            ldap_cert_list.append(cert_detail)    
             
             i += 1
-            
     
         msg = "The certificate %s was found." % (self.endpoint)
         
         response.update({"status": 200, "message": msg, "is_found": True,
-                         "cert_details": cert_list})    
-            
+                         "cert_details": ldap_cert_list})    
+           
         return response   
         
         
         
-    def get_certificate_dns(self, save_to_disk= True, file_extension="pem"):
-        response =""
+    def get_certificate_dns(self, response="", save_to_disk= True, file_extension="pem"):
+        
         self.endpoint =  self.endpoint.replace("@", ".")
         
         try:
@@ -309,11 +335,13 @@ class DCert:
         
         except dns.exception.Timeout:
              response="Timeout. A certificate may exist, but or your Intetrnet service provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."
+        
+        
         return response 
         
         
         
-    def get_certificate_ldap(self, save_to_disk= True, file_extension="pem"):
+    def get_certificate_ldap(self, save_to_disk= True,  file_extension="pem"):
         response =""
         self.endpoint =  self.endpoint.replace("@", ".")   
         
@@ -334,7 +362,6 @@ class DCert:
        
         if error:
             return response
-            
             
         servers = [{
            'port': s.port, 
@@ -384,8 +411,7 @@ if __name__ == "__main__":
     
     #Get the file from the command line
     if len(sys.argv)<3:
-        print "You must suppy an endpoint and indicate wheather or not you want to download the certificate."
-        print "For example, jon@direct.example.com or direct.example.com"
+        print "You must suppy an endpoint and indicate if you want to download the certificate or not."
         print "Usage: getdc [email/endpoint] [Download_Certificate Y/N]"
         sys.exit(1)
     else:
@@ -394,9 +420,12 @@ if __name__ == "__main__":
             download_certificate = True
         else:
              download_certificate = False   
+        
         dc = DCert(endpoint)
+        dc.validate_certificate(download_certificate)
+        print json.dumps(dc.result, indent=4)
         
         
-        result = dc.validate_certificate(download_certificate)
-        print json.dumps(result, indent=4)
+        
+        
         
