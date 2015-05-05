@@ -28,19 +28,21 @@ class DCert:
     
 
     def get_certificate(self, save_to_disk= False, file_extension="pem"):
+        response =""
+        
         if self.endpoint.__contains__("@"):
             email_endpoint = True
             email_username, email_domain = self.endpoint.split("@", 1)
+            self.original_endpoint = self.endpoint 
+            self.endpoint = email_domain
         else:
             email_endpoint = False
         
         if email_endpoint:
-            email_domain_bound_dns  = self.get_certificate_dns(email_domain,
-                                                          save_to_disk,
+            email_domain_bound_dns  = self.get_certificate_dns(save_to_disk,
                                                           file_extension)
             
-            email_domain_bound_ldap = self.get_certificate_ldap(email_domain,
-                                                           save_to_disk,
+            email_domain_bound_ldap = self.get_certificate_ldap(save_to_disk,
                                                            file_extension)
           
         
@@ -52,8 +54,9 @@ class DCert:
                              
             else:
                 #Try it a 2nd way, and try to get the email-bound certificate.
-                endpoint_email_bound_dns  = self.get_certificate_dns(self.endpoint, save_to_disk, file_extension)
-                endpoint_email_bound_ldap = self.get_certificate_ldap(self.endpoint, save_to_disk, file_extension)
+                self.endpoint = self.original_endpoint
+                endpoint_email_bound_dns  = self.get_certificate_dns(save_to_disk, file_extension)
+                endpoint_email_bound_ldap = self.get_certificate_ldap(save_to_disk, file_extension)
                 if endpoint_email_bound_dns.startswith("-----BEGIN CERTIFICATE-----"):
                     response = response + endpoint_email_bound_dns
                 elif endpoint_email_bound_ldap.startswith("-----BEGIN CERTIFICATE-----"):
@@ -76,8 +79,7 @@ class DCert:
         if not response:
             response = "No certificate was found via LDAP or DNS."
         
-        self.response = response
-        return self.response
+        return response
    
 
         
@@ -299,20 +301,20 @@ class DCert:
         
         
         
-    def get_certificate_dns(self, response="", save_to_disk= True, file_extension="pem"):
-        
-        self.endpoint =  self.endpoint.replace("@", ".")
+    def get_certificate_dns(self, save_to_disk= True, file_extension="pem"):
+        response =""
+        endpoint =  self.endpoint.replace("@", ".")
         
         try:
-            answers = dns.resolver.query(self.endpoint, 'CERT')
+            answers = dns.resolver.query(endpoint, 'CERT')
             i=1
             for rdata in answers:
                 if save_to_disk:
                     
                     if i > 1:
-                        fn = "%s_%s.%s" % (self.endpoint, i, file_extension)
+                        fn = "%s_%s.%s" % (endpoint, i, file_extension)
                     else:
-                        fn = "%s.%s" % (self.endpoint, file_extension)
+                        fn = "%s.%s" % (endpoint, file_extension)
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
                     fh.writelines(base64.encodestring(rdata.certificate).rstrip())
@@ -331,7 +333,7 @@ class DCert:
             response = "No nameservers. Network failure. No certificate found. You may be disconnected from the Internet. If you have an Internet connection then a certificate may exist, but or your Intetrnet Service Provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."    
             
         except dns.resolver.NoAnswer:
-            response = "No Answer. The server did not provide an answer. No certificate found."
+            response = "No Answer. The server did not provide an answer. No certificate was found."
         
         except dns.exception.Timeout:
              response="Timeout. A certificate may exist, but or your Intetrnet service provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."
