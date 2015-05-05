@@ -3,7 +3,7 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.9.4
+Version 0.9.8.4
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
@@ -11,22 +11,23 @@ or DNS.
 
 The command line utility and API attempts to fetch an x509 
 certificate, or certificates, from DNS and.or LDAP.  If found, the utility
-saves the certificate, or certificates, as a `.pem` file in the local file system.
-A top level boolean variable `is_found` contains the flag indicating if the
-certificate was found or not.
+saves the certificate, or certificates, as a `.pem` file in the local file
+system. A top level boolean variable `is_found` contains the flag indicating
+if the certificate was found or not.
 
 If an email address is presented the tool will first attempt to look up and
 return a domain bound certificate.  If that fails, the tool will attempt to
-look up an email-bound certificate. The response will indicate wheather a domain-bound
-or email-bound certificate was retrieved. For this feature to work, use the "@" symbol
-in the endpoint and not the DNS representation.  E.g. "john@direct.example.com"
-not "john.direct.example.com".
+look up an email-bound certificate. The response will indicate wheather a
+domain-bound or email-bound certificate was retrieved. For this feature to work,
+use the "@" symbol in the endpoint and not the DNS representation.
+(e.g. "john@direct.example.com" instead of "john.direct.example.com".
 
 
 Installation
 ------------
 
-You need to make sure you have the prerequisites for the application. The following instructions are for Ubuntu.
+You need to make sure you have the prerequisites for the application.
+The following instructions are for Ubuntu.
 
     sudo apt-get install -y python-ldap python-dnspython python-openssl
 
@@ -161,14 +162,16 @@ There are many tools for this purpose. Openssl is just an example.
 Application Programming Interface (API) for Python`get_certificate_dns
 --------------------------------------------------
 
-The DCert class six functions; 3 get functions and 3 validate functions. 
+The DCert class defines six functions; 3 get functions and 3 validate functions. 
 The get functions are `get_certificate_dns`, `get_certificate_ldap`, and
 `get_certificate`
-both download certificates and return them to stout.  `get_certificate` performs both
-`get_certificate_dns` and `get_certificate_ldap` functions.  The verify functions are
-`validate_certificate_dns`, `validate_certificate_ldap`, and `validate_certificate`.
-These functions return the JSON status document described above. The `validate_certificate`
-function performs the actions of both `validate_certificate_dns` and `validate_certificate_ldap`.
+both download certificates and return them to stdout.  `get_certificate` performs both
+`get_certificate_dns` and `get_certificate_ldap` functions.
+
+The verify functions are `validate_certificate_dns`, `validate_certificate_ldap`, and
+`validate_certificate`. These functions return the JSON status document described above.
+The `validate_certificate` function performs the actions of both
+`validate_certificate_dns` and `validate_certificate_ldap`.
 
 
 Below is an example of verify_certificate: 
