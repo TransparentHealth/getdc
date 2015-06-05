@@ -38,7 +38,7 @@ The following instructions are for Ubuntu.
 ...or to install from source or into a virtualenv (on Ubuntu):
 
 
-    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev libffi-dev
+    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev libffi-dev libssl-dev 
     sudo pip install getdc
 
 
