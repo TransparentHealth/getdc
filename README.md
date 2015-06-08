@@ -3,7 +3,7 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.9.8.4
+Version 0.9.8.5
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
@@ -29,7 +29,7 @@ Installation
 You need to make sure you have the prerequisites for the application.
 The following instructions are for Ubuntu.
 
-    sudo apt-get install -y python-ldap python-dnspython python-openssl cryptography
+    sudo apt-get install -y python-ldap python-dnspython python-openssl
 
 ...then you can install with pip
 
@@ -52,11 +52,11 @@ not via LDAP or DNS.
 Usage:
     
     
-    getdc [email/endpoint] [download Certificate Y/N]
+    get_direct_certificate.py [email/endpoint] [download Certificate Y/N]
 
 Example 1: Discover a certificate via DNS and download the certificate
 
-    $ python getdc.py hit-testing.nist.gov Y
+    $ get_direct_certificate.py hit-testing.nist.gov Y
     
     {
         "is_found": true, 
@@ -106,7 +106,7 @@ Example 1.1: Print out the resulting PEM certificate as text
 Example 2: Get a non-existent domain or one not running LDAP or DNS.
 
 
-    $ python getdc.py foo.example.com Y
+    $ python get_direct_certificate.py foo.example.com Y
     {
         "is_found": false, 
         "dns": {
@@ -125,7 +125,7 @@ Example 2: Get a non-existent domain or one not running LDAP or DNS.
 
 Example 3: Get a certificate via LDAP.
 
-    $ python getdc.py domain2.demo.direct-test.com Y
+    $ get_direct_certificate.py domain2.demo.direct-test.com Y
     
     {
             "is_found": true, 
@@ -160,7 +160,7 @@ There are many tools for this purpose. Openssl is just an example.
 
 
 Application Programming Interface (API) for Python`get_certificate_dns
---------------------------------------------------
+----------------------------------------------------------------------
 
 The DCert class defines six functions; 3 get functions and 3 validate functions. 
 The get functions are `get_certificate_dns`, `get_certificate_ldap`, and
@@ -177,7 +177,7 @@ The `validate_certificate` function performs the actions of both
 Below is an example of verify_certificate: 
 
 
-    >>> from getdc.getdc import DCert
+    >>> from getdc.get_direct_certificate import DCert
     >>> import json
     >>>  d = DCert("hit-testing.nist.gov")
     >>> result = d.verify_certificate()
