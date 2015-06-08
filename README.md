@@ -29,7 +29,7 @@ Installation
 You need to make sure you have the prerequisites for the application.
 The following instructions are for Ubuntu.
 
-    sudo apt-get install -y python-ldap python-dnspython python-openssl
+    sudo apt-get install -y python-ldap python-dnspython python-openssl cryptography
 
 ...then you can install with pip
 
