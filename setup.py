@@ -48,7 +48,7 @@ packages, data_files = [], []
 root_dir = os.path.dirname(__file__)
 if root_dir != '':
     os.chdir(root_dir)
-getdc_dir = 'getdc'
+getdc_dir = 'gdc'
 
 for dirpath, dirnames, filenames in os.walk(getdc_dir):
     # Ignore dirnames that start with '.'
@@ -67,18 +67,18 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.9.8.5",
+      version="0.9.8.6",
       description="Library of tools for fetching an x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors. 
           Requires dnspython and python-ldap to be installed. python-dev libldap2-dev libsasl2-dev needs to be installed on your system.""",
       author="Alan Viars",
-      author_email="alan.viars@cms.hhs.gov",
-      url="https://gitbub.com/aviars/getdc",
+      author_email="sales@videntity.com",
+      url="https://gitbub.com/videntity/getdc",
       download_url="https://gitbub.com/aviars/getdc/tarball/master",
       install_requires=[
         'dnspython', 'python-ldap', 'pyopenssl', 'cryptography'],
       packages=packages,
       include_package_data=True,
-      scripts=['getdc/get_direct_certificate.py',]
+      scripts=['gdc/get_direct_certificate.py',]
       )
 

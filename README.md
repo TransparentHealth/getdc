@@ -3,7 +3,7 @@ Get Direct Certificate - A Command Line Utility and API for Certificate Discover
 
 Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.9.8.5
+Version 0.9.8.6
 
 The `getdc` tool is designed to simplify and automate Direct certificate
 discovery, however, it can be used to fetch any x509 certificate from LDAP
@@ -61,7 +61,7 @@ Example 1: Discover a certificate via DNS and download the certificate
     {
         "is_found": true, 
         "dns": {
-            "status": 200, 
+            "status": 200, domain2.demo.direct-test.com Y
             "cert_details": [
                 {
                     "is_expired": false
@@ -177,7 +177,7 @@ The `validate_certificate` function performs the actions of both
 Below is an example of verify_certificate: 
 
 
-    >>> from getdc.get_direct_certificate import DCert
+    >>> from gdc.get_direct_certificate import DCert
     >>> import json
     >>>  d = DCert("hit-testing.nist.gov")
     >>> result = d.verify_certificate()
