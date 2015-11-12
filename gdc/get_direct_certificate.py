@@ -10,46 +10,12 @@ import dns.resolver
 import ldap
 from  OpenSSL import crypto
 from collections import OrderedDict
+from gdc.parse_certificate import enchalada
 
 
 class DCert:
     
-    def parsex509(self, x509):
-        cert_detail =OrderedDict()
-        cert_detail['subject'] =  dict(x509.get_subject().get_components())
-        
-        if x509.has_expired():
-            cert_detail["is_expired"] = True    
-        else:
-            cert_detail["is_expired"]  = False
-        
-        cert_detail['serial_number'] =  x509.get_serial_number()
-        cert_detail['issuer'] =  dict(x509.get_issuer().get_components())
-        cert_detail['notBefore'] =  x509.get_notBefore()
-        cert_detail['notAfter'] =  x509.get_notAfter()
-        
-        cert_detail['signature_algorithm'] =  x509.get_signature_algorithm()
-        cert_detail['version'] =  x509.get_version()
 
-        
-        #Add the extensions ---------------------------------------
-        extensions = []
-        ext_count = x509.get_extension_count()
-        for i in range(ext_count):
-            ed = OrderedDict()
-            e = x509.get_extension(i)
-            print dir(e)
-            #print type(e.get_short_name()), type(e.get_data()),  e.get_data()
-            
-            ed[e.get_short_name()] = e.__str__()
-            extensions.append(ed)
-            #print i, e, e.get_short_name()
-        cert_detail['extensions'] = extensions
-        
-            #print dir(e)
-            
-        return cert_detail
-    
     
     
     
@@ -211,7 +177,7 @@ class DCert:
                               "\n-----END CERTIFICATE-----\n"
                 x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
                 
-                cert_detail = self.parsex509(x509)
+                cert_detail = enchalada(x509)
                     
                 #Add it to the list (we use a list beacuse there can be more than one.)
                 dns_cert_list.append(cert_detail)    
@@ -310,7 +276,7 @@ class DCert:
             x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
                     
             #Is the cert expired ?
-            cert_detail = self.parsex509(x509)
+            cert_detail = enchalada(x509)
             
 
             

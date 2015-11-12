@@ -152,37 +152,137 @@ def build_chain(x509):
 def verify_chain(chain):   
     results = OrderedDict()
     results["valid_chain"] = False
-    id_keys = []
+    links = []
+    crl_check_list =[]
     for l in chain:
         link= OrderedDict()
-        subjectKeyIdentifier = l['extensions']['subjectKeyIdentifier']
-        link['subjectKeyIdentifier']= l['extensions']['subjectKeyIdentifier']
-        link['authorityKeyIdentifierkeyid']= l['extensions']['authorityKeyIdentifierkeyid']
-        link['CN']= l['subject']['CN']
-        id_keys.append(link)
+        if l.has_key('extensions'):
+            if l['extensions'].has_key('subjectKeyIdentifier') and \
+               l['extensions'].has_key('authorityKeyIdentifierkeyid'):
+        
+                subjectKeyIdentifier = l['extensions']['subjectKeyIdentifier']
+                link['subjectKeyIdentifier']= l['extensions']['subjectKeyIdentifier']
+                link['authorityKeyIdentifierkeyid']= l['extensions']['authorityKeyIdentifierkeyid']
+                
+                link['CN']= l['subject']['CN']
+                link['serial_number']= l['serial_number']
+                
+            if l['extensions'].has_key('crlDistributionPointsURIs'):
+                link['crlDistributionPointsURIs']= l['extensions']['crlDistributionPointsURIs']
+                
+                
+            links.append(link)
     
     keymatch = []
-    for i in range(0, len(id_keys)):
-     
+    
+    #Check for subject key matching -----------------------------------------
+    for i in range(0, len(links)):
         try:
-            if id_keys[i]['authorityKeyIdentifierkeyid'] == id_keys[i+1]['subjectKeyIdentifier']:
-                keymatch.append(id_keys[i]['CN'])
+            if links[i]['authorityKeyIdentifierkeyid'] == links[i+1]['subjectKeyIdentifier']:
+                keymatch.append(links[i]['CN'])
         except:
-            if id_keys[i]['authorityKeyIdentifierkeyid'] == id_keys[i]['authorityKeyIdentifierkeyid']:
-                k = "%s[Assumed Root]" % (id_keys[i]['CN'])
-                keymatch.append(id_keys[i]['CN'])
+            if links[i]['authorityKeyIdentifierkeyid'] == links[i]['authorityKeyIdentifierkeyid']:
+                k = "%s[Assumed Root or Self-Signed]" % (links[i]['CN'])
+                keymatch.append(k)
        
-        #print "Link", subjectKeyIdentifier
-        #for i in range(0, len(results))
-    if len(keymatch) == len(chain):
+    if len(keymatch) == len(chain) and len(keymatch) > 0:
        results["valid_chain"] = True
    
-    results["keyids"]=id_keys
+   #perform the CRL 
+    revocation = []
+    for link in links:
+        revocation.append(verify_not_revoked(link))
+    
+    
+   
+    results["revocation"]=revocation
+    results["links"]=links
     results["keymatch"]= keymatch
        
     return results
     
- 
+def verify_not_revoked(link):
+    results =OrderedDict()
+    errors = []
+    warnings=[]
+    crl_list = []
+    revoked = False
+    
+    if link.has_key('crlDistributionPointsURIs'): 
+            url_list = link['crlDistributionPointsURIs']
+            for u in url_list:
+                crl_detail = OrderedDict()
+                crl = None
+                r = requests.get(u)
+                if r.status_code != 200:
+                    msg = "Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                else:
+                    #we got a response
+                    # try and parse it as pem
+                    
+                    try:
+                        crl = crypto.load_crl(crypto.FILETYPE_PEM, r.text)
+                    except UnicodeEncodeError:
+                        #Might be a der
+                        try: 
+                            crl = crypto.load_certificate(crypto.FILETYPE_ASN1, r.content)
+                        except crypto.Error:
+                            crl_detail["no_crl"] = True
+                            msg = "Error parsing CRL URI %s" % (u)
+                            errors.append(msg)
+                            
+                    except crypto.Error:
+                        crl_detail["no_crl"] = True
+                        msg = "Error parsing CRL URI %s" % (u)
+                        errors.append(msg)
+                if crl:
+                    
+                    crl_detail['no_crl'] = False
+                    print "Parse the CRL", crl, u, "for serial ", link['serial_number']
+                    crl_detail['serial_number'] = link['serial_number']
+                    if crl.get_revoked():
+                        for r in crl.get_revoked():
+                             s =r.get_serial()
+                             if s == link["serial_number"]:
+                                 revoked = True
+                        
+                    if revoked == True:
+                           crl_detail['revoked'] = True
+                    else:
+                           crl_detail['revoked'] = False
+                    crl_list.append(crl_detail)
+
+    else:
+       msg = "No CRLs found for %s" % (link['CN'])
+       warnings.append(msg)
+           
+    #print "Get CRL Chain"
+    #print "Compare"
+    if warnings:
+        results['warnings']=warnings
+    if errors:
+        results['errors']=errors
+    no_crl = True
+    for c in crl_list:
+        if c['no_crl']==False:
+             no_crl = False
+            
+    
+            
+    if no_crl==False:
+        results['no_crl'] = False
+        results['crl']=crl_list
+        results['CN'] = link['CN']
+    else:
+        results['no_crl'] = True
+        results['crl']= [{"no_crl": True,
+                         "CN": link['CN'],
+                         },]
+    
+    return results
+    
+    
  
 def validate_chain_link(cert_detail):
     aia = {}
@@ -231,6 +331,9 @@ def validate_chain_link(cert_detail):
         results['errors']=errors
     if aia:
         results['aia']=aia
+    else:
+        results['aia']= {"no_aia": True }
+    
     return results
     
 
@@ -246,7 +349,7 @@ if __name__ == "__main__":
     x509 = open_cert(file_name)   
   
     cert_detail = build_chain(x509)
-    
+    #print "foo"
     print json.dumps(cert_detail, indent=4)
         
         
