@@ -3,10 +3,14 @@
 # vim: ai ts=4 sts=4 et sw=4
 # Written by Alan Viars, Josh Mandel
 import requests
-import json, sys
+import json, sys, os
 from  OpenSSL import crypto
 from collections import OrderedDict
 
+
+class dummy_http_response(object):
+    status_code = 0
+    
 
 def open_cert(file_name, crypt_filetype=crypto.FILETYPE_PEM):
     f = open(file_name, 'r')
@@ -16,8 +20,11 @@ def open_cert(file_name, crypt_filetype=crypto.FILETYPE_PEM):
     return x509
     
     
-def parsex509(x509):
+def parsex509(x509, expected_bound_entity=None):
     cert_detail =OrderedDict()
+    
+    if expected_bound_entity:
+        cert_detail['bound_to_expected_entity'] = False
     
     
     serial_number = hex(x509.get_serial_number())[2:]
@@ -50,7 +57,6 @@ def parsex509(x509):
     #Add the extensions ---------------------------------------
     extensions = OrderedDict()
     ext_count = x509.get_extension_count()
-    
     
     
     #check for CRLs or AIAs
@@ -122,6 +128,20 @@ def parsex509(x509):
             extensions["keyUsage"] = cusages
        
     cert_detail['extensions'] = extensions 
+    
+    
+    if extensions.get("subjectAltNameemail","") == expected_bound_entity:
+        cert_detail['bound_to_expected_entity'] =True
+    if extensions.get("subjectAltNameDNS","") == expected_bound_entity:
+        cert_detail['bound_to_expected_entity'] =True
+    
+    if expected_bound_entity:
+        dns_version =  expected_bound_entity.replace("@", ".")
+        if extensions.get("subjectAltNameemail","") == dns_version:
+            cert_detail['bound_to_expected_entity'] =True
+        if extensions.get("subjectAltNameDNS","") == dns_version:
+            cert_detail['bound_to_expected_entity'] =True
+        
     return cert_detail
 
 
@@ -134,17 +154,24 @@ def enchalada(x509):
     
 
 
-def build_chain(x509):
+def build_chain(x509, expected_bound_entity=None):
     #first link in the chain
     flat_chain = []
     
-    cert_detail = parsex509(x509)
+    cert_detail = parsex509(x509, expected_bound_entity )
+    
+    
+    
+    
     cert_detail['chain'] = []
     cert_detail['aia'] = validate_chain_link(cert_detail)
     flat_chain.append(cert_detail)
     cert_detail['chain'].append(cert_detail['aia'])
+    
+    
     parent = cert_detail['aia']['aia']
     flat_chain.append(parent)
+
 
     while parent['no_aia'] == False:
        parent = validate_chain_link(parent)
@@ -236,14 +263,51 @@ def verify_not_revoked(link):
     crl_list = []
     revoked = False
     
+    
     if link.has_key('crlDistributionPointsURIs'): 
             url_list = link['crlDistributionPointsURIs']
             for u in url_list:
+                request_error = False
                 crl_detail = OrderedDict()
                 crl = None
-                r = requests.get(u)
+                try:
+                    r = requests.get(u)    
+                except requests.exceptions.ConnectionError:
+                    msg = "ConnectionError: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+                    
+                except requests.exceptions.Timeout:
+                    msg = "Timeout: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+                except requests.exceptions.URLRequired:
+                    msg = "URLRequired: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+                except requests.exceptions.RequestException:
+                    msg = "RequestException: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+                except requests.exceptions.HTTPError:
+                    msg = "HTTPError: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+                except requests.exceptions.TooManyRedirects:
+                    msg = "TooManyRedirects: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+                
+                if request_error:
+                    r = dummy_http_response()
+                    
+                    
                 if r.status_code != 200:
-                    msg = "Could not fetch CRL %s" % (u )
+                    msg = "Could not fetch CRL %s" % (u)
                     warnings.append(msg)
                 else:
                     #we got a response
@@ -317,7 +381,7 @@ def verify_not_revoked(link):
     
  
 def validate_chain_link(cert_detail):
-    aia = {}
+    aia = OrderedDict()
     results ={}
     warnings =[]
     errors =[]
@@ -325,8 +389,44 @@ def validate_chain_link(cert_detail):
     
     if cert_detail['extensions'].has_key('authorityInfoAccessURIs'):
         for aia in cert_detail['extensions']['authorityInfoAccessURIs']:
+            x509 = None
+            request_error = False
+            try:
+                r = requests.get(aia)
             
-            r = requests.get(aia)
+            except requests.exceptions.ConnectionError:
+                msg = "Connection Error: Could not fetch AIA %s" % (aia)
+                warnings.append(msg)
+                request_error = True
+             
+            except requests.exceptions.Timeout:
+                    msg = "Timeout: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+            except requests.exceptions.URLRequired:
+                    msg = "URLRequired: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+            except requests.exceptions.RequestException:
+                    msg = "RequestException: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+            
+            except requests.exceptions.HTTPError:
+                    msg = "HTTPError: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True
+
+            except requests.exceptions.TooManyRedirects:
+                    msg = "TooManyRedirects: Could not fetch CRL %s" % (u )
+                    warnings.append(msg)
+                    request_error = True    
+                
+            if request_error:
+                r = dummy_http_response()
+            
             if r.status_code != 200:
                 msg = "Could not fetch AIA %s" % (aia)
                 warnings.append(msg)
@@ -349,22 +449,20 @@ def validate_chain_link(cert_detail):
                     errors.append(msg)
             if x509:
                 aia  = parsex509(x509)
-
-                          
+            else:
+                aia = OrderedDict()
+                aia['no_aia'] = True   
     else:
            msg = "No AIAs found for %s" % (cert_detail['subject']['CN'])
            warnings.append(msg)
+           aia = OrderedDict()
+           aia['no_aia'] = True
            
-    #print "Get CRL Chain"
-    #print "Compare"
     if warnings:
         results['warnings']=warnings
     if errors:
-        results['errors']=errors
-    if aia:
-        results['aia']=aia
-    else:
-        results['aia']= {"no_aia": True }
+        results['errors']=errors    
+    results['aia']=aia
     
     return results
     
@@ -378,9 +476,15 @@ if __name__ == "__main__":
         sys.exit(1)
     
     file_name = sys.argv[1]
-    x509 = open_cert(file_name)   
-  
-    cert_detail = build_chain(x509)
+
+    x509 = open_cert(file_name)
+
+    
+    base=os.path.basename(file_name)    
+    #The expected bound entity (usually the common name)
+    ebe = os.path.splitext(base)[0]
+    
+    cert_detail = build_chain(x509, ebe)
     #print "Done."
     print json.dumps(cert_detail, indent=4)
         

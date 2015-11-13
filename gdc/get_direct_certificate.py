@@ -10,7 +10,7 @@ import dns.resolver
 import ldap
 from  OpenSSL import crypto
 from collections import OrderedDict
-from gdc.parse_certificate import enchalada
+from parse_certificate import build_chain
 
 
 class DCert:
@@ -177,7 +177,7 @@ class DCert:
                               "\n-----END CERTIFICATE-----\n"
                 x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
                 
-                cert_detail = enchalada(x509)
+                cert_detail = build_chain(x509, self.endpoint)
                     
                 #Add it to the list (we use a list beacuse there can be more than one.)
                 dns_cert_list.append(cert_detail)    
@@ -275,8 +275,8 @@ class DCert:
                           "\n-----END CERTIFICATE-----\n"
             x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
                     
-            #Is the cert expired ?
-            cert_detail = enchalada(x509)
+            #Get all the goodies
+            cert_detail = build_chain(x509, self.endpoint)
             
 
             

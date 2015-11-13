@@ -67,10 +67,11 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.9.8.9",
-      description="Library of tools for fetching an x509 certificate from DNS and LDAP",
+      version="0.9.9.1",
+      description="Library of tools for fetching and parsing x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors. 
-          Requires dnspython and python-ldap to be installed. python-dev libldap2-dev libsasl2-dev needs to be installed on your system.""",
+          Requires dnspython and python-ldap to be installed and python-dev libldap2-dev libsasl2-dev need to be installed 
+          on your system.""",
       author="Alan Viars",
       author_email="sales@videntity.com",
       url="https://gitbub.com/videntity/getdc",
