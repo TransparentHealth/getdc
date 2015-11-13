@@ -18,16 +18,27 @@ def open_cert(file_name, crypt_filetype=crypto.FILETYPE_PEM):
     
 def parsex509(x509):
     cert_detail =OrderedDict()
-    cert_detail['no_aia'] = False
-    cert_detail['no_crl'] = False
+    
+    
+    serial_number = hex(x509.get_serial_number())[2:]
+    if len(serial_number) % 2 != 0:
+        serial_number ="0%s" % (serial_number)
+    cert_detail['serial_number'] =  serial_number.upper()    
+
     cert_detail['subject'] =  dict(x509.get_subject().get_components())
+    cert_detail["status"] = "ACTIVE"
+    cert_detail["revocation_status"] = "ACTIVE"
+    cert_detail["chain_status"] = "BROKEN"
     
     if x509.has_expired():
-        cert_detail["is_expired"] = True    
+        cert_detail["is_expired"] = True
+        cert_detail["status"] = "EXPIRED"
     else:
         cert_detail["is_expired"]  = False
+   
+    cert_detail['no_aia'] = False
+    cert_detail['no_crl'] = False 
     
-    cert_detail['serial_number'] =  x509.get_serial_number()
     cert_detail['issuer'] =  dict(x509.get_issuer().get_components())
     cert_detail['notBefore'] =  x509.get_notBefore()
     cert_detail['notAfter'] =  x509.get_notAfter()
@@ -131,7 +142,6 @@ def build_chain(x509):
     cert_detail['chain'] = []
     cert_detail['aia'] = validate_chain_link(cert_detail)
     flat_chain.append(cert_detail)
-    
     cert_detail['chain'].append(cert_detail['aia'])
     parent = cert_detail['aia']['aia']
     flat_chain.append(parent)
@@ -145,6 +155,11 @@ def build_chain(x509):
     
     
     cert_detail['chainVerification'] = verify_chain(flat_chain)
+    if cert_detail['chainVerification']['valid_chain']:
+        cert_detail["chain_status"] = "IN-TACT"
+
+    cert_detail["revocation_status"] = cert_detail['chainVerification']['revocation_status']
+    
     
     return cert_detail
 
@@ -153,6 +168,7 @@ def verify_chain(chain):
     results = OrderedDict()
     results["valid_chain"] = False
     links = []
+    revocation_status = "ACTIVE"
     crl_check_list =[]
     for l in chain:
         link= OrderedDict()
@@ -196,9 +212,21 @@ def verify_chain(chain):
     
    
     results["revocation"]=revocation
+    
+    for r in revocation:
+        if r.has_key('crl'):
+            for c in r['crl']:
+                if c.has_key('revoked'):
+                    if c['revoked'] == True:
+                        revocation_status = "REVOKED"
+        if r['no_crl']== True:
+            results["no_crl"]=   True
+            revocation_status = "UNDETERMINED"
+        
     results["links"]=links
     results["keymatch"]= keymatch
-       
+    results["revocation_status"]=   revocation_status
+    
     return results
     
 def verify_not_revoked(link):
@@ -239,11 +267,16 @@ def verify_not_revoked(link):
                 if crl:
                     
                     crl_detail['no_crl'] = False
-                    print "Parse the CRL", crl, u, "for serial ", link['serial_number']
+                    #print "Parse the CRL", crl, u, "for serial ", link['serial_number']
                     crl_detail['serial_number'] = link['serial_number']
+                    
+                    #print "CRL Object loaded!!!!", crl.get_revoked()
+                    
+                    
                     if crl.get_revoked():
+                        
                         for r in crl.get_revoked():
-                             s =r.get_serial()
+                             s =r.get_serial().upper()
                              if s == link["serial_number"]:
                                  revoked = True
                         
@@ -267,8 +300,7 @@ def verify_not_revoked(link):
     for c in crl_list:
         if c['no_crl']==False:
              no_crl = False
-            
-    
+
             
     if no_crl==False:
         results['no_crl'] = False
@@ -349,7 +381,7 @@ if __name__ == "__main__":
     x509 = open_cert(file_name)   
   
     cert_detail = build_chain(x509)
-    #print "foo"
+    #print "Done."
     print json.dumps(cert_detail, indent=4)
         
         
