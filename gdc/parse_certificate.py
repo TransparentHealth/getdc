@@ -20,7 +20,7 @@ def open_cert(file_name, crypt_filetype=crypto.FILETYPE_PEM):
     return x509
     
     
-def parsex509(x509, expected_bound_entity=None):
+def parsex509(x509, expected_bound_entity=""):
     cert_detail =OrderedDict()
     
     if expected_bound_entity:
@@ -129,10 +129,20 @@ def parsex509(x509, expected_bound_entity=None):
        
     cert_detail['extensions'] = extensions 
     
-    
+    if extensions.get("subjectAltNameemail",""):
+        dot_version = extensions.get("subjectAltNameemail","").replace("@", ".")
+    elif extensions.get("subjectAltNameDNS",""):        
+        dot_version = extensions.get("subjectAltNameDNS","").replace("@", ".")
+    else:
+        dot_version=""
+        
     if extensions.get("subjectAltNameemail","") == expected_bound_entity:
+        cert_detail['bound_to_expected_entity'] = True
+    if dot_version == expected_bound_entity:
         cert_detail['bound_to_expected_entity'] =True
     if extensions.get("subjectAltNameDNS","") == expected_bound_entity:
+         cert_detail['bound_to_expected_entity'] =True
+    if dot_version == expected_bound_entity:
         cert_detail['bound_to_expected_entity'] =True
     
     if expected_bound_entity:
@@ -146,15 +156,8 @@ def parsex509(x509, expected_bound_entity=None):
 
 
 
-def enchalada(x509):
-    
-    #build the chain
-    cert_detail = build_chain(x509)
-    return cert_detail
-    
 
-
-def build_chain(x509, expected_bound_entity=None):
+def build_chain(x509, expected_bound_entity=""):
     #first link in the chain
     flat_chain = []
     
@@ -317,8 +320,8 @@ def verify_not_revoked(link):
                         crl = crypto.load_crl(crypto.FILETYPE_PEM, r.text)
                     except UnicodeEncodeError:
                         #Might be a der
-                        try: 
-                            crl = crypto.load_certificate(crypto.FILETYPE_ASN1, r.content)
+                        try:
+                            crl = crypto.load_crl(crypto.FILETYPE_ASN1, r.content)
                         except crypto.Error:
                             crl_detail["no_crl"] = True
                             msg = "Error parsing CRL URI %s" % (u)
@@ -479,7 +482,6 @@ if __name__ == "__main__":
 
     x509 = open_cert(file_name)
 
-    
     base=os.path.basename(file_name)    
     #The expected bound entity (usually the common name)
     ebe = os.path.splitext(base)[0]
