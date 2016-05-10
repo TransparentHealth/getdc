@@ -17,7 +17,7 @@ if the certificate was found or not.
 
 If an email address is presented the tool will first attempt to look up and
 return a domain bound certificate.  If that fails, the tool will attempt to
-look up an email-bound certificate. The response will indicate wheather a
+look up an email-bound certificate. The response will indicate whether a
 domain-bound or email-bound certificate was retrieved. For this feature to work,
 use the "@" symbol in the endpoint and not the DNS representation.
 (e.g. "john@direct.example.com" instead of "john.direct.example.com".
@@ -46,7 +46,7 @@ The following instructions are for Ubuntu.
 Command Line Utility
 --------------------
 
-A response is printed as JSON to stout indicating wheather the certificate was found or
+A response is printed as JSON to stdout indicating wheather the certificate was found or
 not via LDAP or DNS.
 
 Usage:
@@ -54,7 +54,7 @@ Usage:
     
     get_direct_certificate.py [email/endpoint] [download Certificate Y/N]
 
-Example 1: Discover a certificate via DNS and download the certificate
+Example 1: Discover a certificate via DNS and download the certificate.
 
     $ get_direct_certificate.py hit-testing.nist.gov Y
     
@@ -78,7 +78,7 @@ Example 1: Discover a certificate via DNS and download the certificate
         }
     }
 
-Example 1.1: Print out the resulting PEM certificate as text
+Example 1.1: Print out the resulting PEM certificate as text.
 
     > cat hit-testing.nist.gov.pem
     -----BEGIN CERTIFICATE-----
