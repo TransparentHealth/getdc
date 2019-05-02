@@ -19,7 +19,7 @@ def proceess_endpoint_csv(input_csv_filepath,
         "ValidEmail",
         "ValidDirect",
         "Details"]
-    input_fh = open(input_csv_filepath, 'r', newline='', encoding='iso-8859-1')
+    input_fh = open(input_csv_filepath, 'r', newline='')
     output_fh = open(output_csv_filepath, 'w', newline='')
     input_csv = csv.reader(input_fh, delimiter=',')
     writer = csv.DictWriter(output_fh, fieldnames=output_fieldnames)
