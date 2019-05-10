@@ -263,8 +263,12 @@ class DCert:
         for s in servers:
             url = "ldap://%(host)s:%(port)s" % s
             l = ldap.initialize(url)
-            result_id = l.search("", ldap.SCOPE_SUBTREE,
+            l.set_option(ldap.OPT_NETWORK_TIMEOUT, 10.0)
+            try:
+                result_id = l.search("", ldap.SCOPE_SUBTREE,
                                  "mail=%s" % self.endpoint, None)
+            except ldap.SERVER_DOWN:
+                result_id  = 0
             while True:
                 rtype, rdata = l.result(result_id, 0)
                 if rdata == []:
