@@ -320,6 +320,12 @@ class DCert:
                                  "message": "No certificate found.",
                                  "details": "The server did not provide an answer.",
                                  "is_found": False})
+        except ldap.OPERATIONS_ERROR:
+            result_id  = 0
+            response.update({"status": 404,
+                                 "message": "No certificate found.",
+                                 "details": "The server did not provide an answer.",
+                                 "is_found": False})
         
         return response
 
