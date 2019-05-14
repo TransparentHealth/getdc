@@ -77,7 +77,7 @@ setup(name="getdc",
       url="https://gitbub.com/transparenthealth/getdc",
       download_url="https://gitbub.com/transparenthealth/getdc/tarball/master",
       install_requires=[
-        'dnspython', 'python-ldap', 'pyopenssl', 'cryptography', 'requests', 'validtae_email'],
+        'dnspython', 'python-ldap', 'pyopenssl', 'cryptography', 'requests', 'validate_email'],
       packages=packages,
       include_package_data=True,
       scripts=['gdc/get_direct_certificate.py', 'gdc/parse_certificate.py', 'gdc/process_nppes_endpoint_file.py',

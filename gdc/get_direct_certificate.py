@@ -79,6 +79,9 @@ class DCert:
 
             if ldap_response.startswith("-----BEGIN CERTIFICATE-----"):
                 response = response + ldap_response
+            else:
+                self.ldap_response.update({'is_found': False, 'message': response})
+                response = ""
 
         if not response:
             response = "No certificate was found via LDAP or DNS."
@@ -227,89 +230,97 @@ class DCert:
             ldap_servers = dns.resolver.query(
                 "_ldap._tcp." + self.endpoint, 'SRV').response.answer[0].items
             error = False
+
         except dns.resolver.NoNameservers:
-            response.update({"status": 412,
-                             "message": "Network failure. "
-                             "details"
-                             "You appear to be disconnected from the Internet.",
-                             "is_found": False})
-            error = True
-
+            response.update({"status": 412, "message": "Network failure. "
+                        "details" "You appear to be disconnected from the Internet.",
+                        "is_found":False })
+            error=True
+    
         except dns.resolver.NXDOMAIN:
-            response.update({"status": 404,
-                             "message": "No certificate found.",
-                             "details": "No LDAP server was found.",
-                             "is_found": False})
-            error = True
-
+            response.update({"status": 404, "message": "No certificate found.",
+                        "details" : "No LDAP server was found.","is_found":False  })
+            error=True
+    
         except dns.resolver.NoAnswer:
-            response.update({"status": 404,
-                             "message": "No certificate found.",
-                             "details": "The server did not provide an answer.",
-                             "is_found": False})
-            error = True
-
+            response.update( {"status": 404, "message": "No certificate found.",
+                        "details" :"The server did not provide an answer.",
+                        "is_found":False })
+            error=True
+       
         if error:
             return response
+        
+        try:
+            servers = [{
+                'port': s.port,
+                'priority': s.priority,
+                'host': s.target.to_text()
+            } for s in ldap_servers]
+    
+            ldap_results = []
+    
+            for s in servers:
+                url = "ldap://%(host)s:%(port)s" % s
+                l = ldap.initialize(url)
+                l.set_option(ldap.OPT_NETWORK_TIMEOUT, 10.0)
+                
+                
+                result_id = l.search("", ldap.SCOPE_SUBTREE,
+                                         "mail=%s" % self.endpoint, None)
+    
+                while True:
+                    rtype, rdata = l.result(result_id, 0)
+                    if rdata == []:
+                        break
+                    ldap_results.append((rtype, rdata))
+    
+            # Only take valid results
+            ldap_results = filter(lambda r: r[0] == 100, ldap_results)
+    
+            # Extract binary (DER) certs from responses
+            cert_ders = ["".join(r[1][0][1]['userCertificate'])
+                         for r in ldap_results]
+            i = 1
+            for c in cert_ders:
+                if download_certificate:
+                    if i > 1:
+                        fn = "%s_%s.pem" % (self.endpoint, i)
+                    else:
+                        fn = "%s.pem" % (self.endpoint)
+    
+                    fh = open(fn, "w")
+                    fh.writelines("-----BEGIN CERTIFICATE-----\n")
+                    fh.writelines(base64.encodestring(c).rstrip())
+                    fh.writelines("\n-----END CERTIFICATE-----\n")
+                    fh.close()
+                # Create a cert object so we can inspect it for more details
+                cert_string = "-----BEGIN CERTIFICATE-----\n" +\
+                              base64.encodestring(c).rstrip() +\
+                              "\n-----END CERTIFICATE-----\n"
+                x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
+    
+                # Get all the goodies
+                cert_detail = build_chain(x509, self.endpoint)
+    
+                # Add it to the list (we use a list beacuse there can be more than
+                # one.)
+                ldap_cert_list.append(cert_detail)
+    
+                i += 1
+    
+            msg = "The certificate %s was found." % (self.endpoint)
+    
+            response.update({"status": 200, "message": msg, "is_found": True,
+                             "cert_details": ldap_cert_list})
 
-        servers = [{
-            'port': s.port,
-            'priority': s.priority,
-            'host': s.target.to_text()
-        } for s in ldap_servers]
-
-        ldap_results = []
-
-        for s in servers:
-            url = "ldap://%(host)s:%(port)s" % s
-            l = ldap.initialize(url)
-            result_id = l.search("", ldap.SCOPE_SUBTREE,
-                                 "mail=%s" % self.endpoint, None)
-            while True:
-                rtype, rdata = l.result(result_id, 0)
-                if rdata == []:
-                    break
-                ldap_results.append((rtype, rdata))
-
-        # Only take valid results
-        ldap_results = filter(lambda r: r[0] == 100, ldap_results)
-
-        # Extract binary (DER) certs from responses
-        cert_ders = ["".join(r[1][0][1]['userCertificate'])
-                     for r in ldap_results]
-        i = 1
-        for c in cert_ders:
-            if download_certificate:
-                if i > 1:
-                    fn = "%s_%s.pem" % (self.endpoint, i)
-                else:
-                    fn = "%s.pem" % (self.endpoint)
-
-                fh = open(fn, "w")
-                fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                fh.writelines(base64.encodestring(c).rstrip())
-                fh.writelines("\n-----END CERTIFICATE-----\n")
-                fh.close()
-            # Create a cert object so we can inspect it for more details
-            cert_string = "-----BEGIN CERTIFICATE-----\n" +\
-                          base64.encodestring(c).rstrip() +\
-                          "\n-----END CERTIFICATE-----\n"
-            x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
-
-            # Get all the goodies
-            cert_detail = build_chain(x509, self.endpoint)
-
-            # Add it to the list (we use a list beacuse there can be more than
-            # one.)
-            ldap_cert_list.append(cert_detail)
-
-            i += 1
-
-        msg = "The certificate %s was found." % (self.endpoint)
-
-        response.update({"status": 200, "message": msg, "is_found": True,
-                         "cert_details": ldap_cert_list})
-
+        except ldap.SERVER_DOWN:
+            result_id  = 0
+            response.update({"status": 404,
+                                 "message": "No certificate found.",
+                                 "details": "The server did not provide an answer.",
+                                 "is_found": False})
+        
         return response
 
     def get_certificate_dns(self, save_to_disk=True, file_extension="pem"):
@@ -373,6 +384,7 @@ class DCert:
             error = True
 
         if error:
+            response = {"is_found": False}
             return response
 
         servers = [{

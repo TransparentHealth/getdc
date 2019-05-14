@@ -71,7 +71,10 @@ def parsex509(x509, expected_bound_entity=""):
         e = x509.get_extension(i)
 
         name = e.get_short_name()
-        value = e.__str__().rstrip()
+        try:
+            value = e.__str__().rstrip()
+        except crypto.Error:
+            value = "" 
 
         # if not in this list just take value as-is
         if name not in (
@@ -84,10 +87,13 @@ def parsex509(x509, expected_bound_entity=""):
         # otherwise we want to special parse
 
         elif name == "subjectAltName":
-            santype, sanvalue = value.split(":")
-            santypename = "%s%s" % (name, santype)
-            extensions[santypename] = sanvalue
-
+            try:
+                santype, sanvalue = value.split(":")
+                santypename = "%s%s" % (name, santype)
+                extensions[santypename] = sanvalue 
+            except ValueError:
+                santypename = "%s%s" % (name, "unk")
+                extensions[santypename] = value 
         elif name == "crlDistributionPoints":
             crl_values = []
             crl_uris = []
@@ -207,7 +213,7 @@ def verify_chain(chain):
                 link['authorityKeyIdentifierkeyid'] = l[
                     'extensions']['authorityKeyIdentifierkeyid']
 
-                link['CN'] = l['subject']['CN']
+                link['CN'] = l['subject'].get('CN')
                 link['serial_number'] = l['serial_number']
 
             if 'crlDistributionPointsURIs' in l['extensions']:
@@ -225,9 +231,9 @@ def verify_chain(chain):
                     i + 1]['subjectKeyIdentifier']:
                 keymatch.append(links[i]['CN'])
         except:
-            if links[i]['authorityKeyIdentifierkeyid'] == links[
-                    i]['authorityKeyIdentifierkeyid']:
-                k = "%s[Assumed Root or Self-Signed]" % (links[i]['CN'])
+            if links[i].get('authorityKeyIdentifierkeyid') == links[
+                    i].get('authorityKeyIdentifierkeyid'):
+                k = "%s[Assumed Root or Self-Signed]" % (links[i].get('CN'))
                 keymatch.append(k)
 
     if len(keymatch) == len(chain) and len(keymatch) > 0:
@@ -350,7 +356,7 @@ def verify_not_revoked(link):
                 crl_list.append(crl_detail)
 
     else:
-        msg = "No CRLs found for %s" % (link['CN'])
+        msg = "No CRLs found for %s" % (link.get('CN'))
         warnings.append(msg)
 
     # print "Get CRL Chain"
@@ -367,11 +373,11 @@ def verify_not_revoked(link):
     if not no_crl:
         results['no_crl'] = False
         results['crl'] = crl_list
-        results['CN'] = link['CN']
+        results['CN'] = link.get('CN')
     else:
         results['no_crl'] = True
         results['crl'] = [{"no_crl": True,
-                           "CN": link['CN'],
+                           "CN": link.get('CN'),
                            }, ]
 
     return results

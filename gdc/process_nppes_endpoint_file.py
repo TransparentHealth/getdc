@@ -10,7 +10,7 @@ from get_direct_certificate import DCert
 __author__ = "Alan Viars"
 
 
-def proceess_endpoint_csv(input_csv_filepath,
+def process_endpoint_csv(input_csv_filepath,
                           output_csv_filepath="output.csv"):
     output_fieldnames = [
         "NPI",
@@ -62,6 +62,6 @@ if __name__ == "__main__":
         sys.exit(1)
     else:
         if len(sys.argv) is 2:
-            proceess_endpoint_csv(sys.argv[1])
+            process_endpoint_csv(sys.argv[1])
         else:
-            proceess_endpoint_csv(sys.argv[1], sys.argv[2])
+            process_endpoint_csv(sys.argv[1], sys.argv[2])
