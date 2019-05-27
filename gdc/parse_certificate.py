@@ -487,4 +487,4 @@ if __name__ == "__main__":
 
     cert_detail = build_chain(x509, ebe)
     # print "Done."
-    print(json.dumps(cert_detail, indent=4))
+    print((json.dumps(cert_detail, indent=4)))
