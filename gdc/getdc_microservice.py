@@ -39,7 +39,7 @@ class GetHandler(BaseHTTPRequestHandler):
         dc = DCert(response['endpoint'])
         dc.validate_certificate(False)
         response["direct_address"] = dc.result['is_found']
-        self.send_response(200)
+        # self.send_response(200)
         self.end_headers()
         j = json.dumps(response, indent=2).encode('utf8')
         self.wfile.write(j)
