@@ -74,7 +74,7 @@ def parsex509(x509, expected_bound_entity=""):
         try:
             value = e.__str__().rstrip()
         except crypto.Error:
-            value = "" 
+            value = ""
 
         # if not in this list just take value as-is
         if name not in (
@@ -90,10 +90,10 @@ def parsex509(x509, expected_bound_entity=""):
             try:
                 santype, sanvalue = value.split(":")
                 santypename = "%s%s" % (name, santype)
-                extensions[santypename] = sanvalue 
+                extensions[santypename] = sanvalue
             except ValueError:
                 santypename = "%s%s" % (name, "unk")
-                extensions[santypename] = value 
+                extensions[santypename] = value
         elif name == "crlDistributionPoints":
             crl_values = []
             crl_uris = []
@@ -179,7 +179,7 @@ def build_chain(x509, expected_bound_entity=""):
     parent = cert_detail['aia']['aia']
     flat_chain.append(parent)
 
-    while parent['no_aia'] == False:
+    while parent['no_aia'] is False:
         parent = validate_chain_link(parent)
         cert_detail['chain'].append(parent['aia'])
         flat_chain.append(parent['aia'])
@@ -200,14 +200,13 @@ def verify_chain(chain):
     results["valid_chain"] = False
     links = []
     revocation_status = "ACTIVE"
-    crl_check_list = []
+
     for l in chain:
         link = OrderedDict()
         if 'extensions' in l:
             if 'subjectKeyIdentifier' in l['extensions'] and \
                'authorityKeyIdentifierkeyid' in l['extensions']:
 
-                subjectKeyIdentifier = l['extensions']['subjectKeyIdentifier']
                 link['subjectKeyIdentifier'] = l[
                     'extensions']['subjectKeyIdentifier']
                 link['authorityKeyIdentifierkeyid'] = l[
@@ -367,7 +366,7 @@ def verify_not_revoked(link):
         results['errors'] = errors
     no_crl = True
     for c in crl_list:
-        if c['no_crl'] == False:
+        if c['no_crl'] is False:
             no_crl = False
 
     if not no_crl:
@@ -388,7 +387,6 @@ def validate_chain_link(cert_detail):
     results = {}
     warnings = []
     errors = []
-    ancestors = []
 
     if 'authorityInfoAccessURIs' in cert_detail['extensions']:
         for aia in cert_detail['extensions']['authorityInfoAccessURIs']:
@@ -403,27 +401,27 @@ def validate_chain_link(cert_detail):
                 request_error = True
 
             except requests.exceptions.Timeout:
-                msg = "Timeout: Could not fetch CRL %s" % (u)
+                msg = "Timeout: Could not fetch CRL"
                 warnings.append(msg)
                 request_error = True
 
             except requests.exceptions.URLRequired:
-                msg = "URLRequired: Could not fetch CRL %s" % (u)
+                msg = "URLRequired: Could not fetch CRL"
                 warnings.append(msg)
                 request_error = True
 
             except requests.exceptions.RequestException:
-                msg = "RequestException: Could not fetch CRL %s" % (u)
+                msg = "RequestException: Could not fetch CRL"
                 warnings.append(msg)
                 request_error = True
 
             except requests.exceptions.HTTPError:
-                msg = "HTTPError: Could not fetch CRL %s" % (u)
+                msg = "HTTPError: Could not fetch CRL"
                 warnings.append(msg)
                 request_error = True
 
             except requests.exceptions.TooManyRedirects:
-                msg = "TooManyRedirects: Could not fetch CRL %s" % (u)
+                msg = "TooManyRedirects: Could not fetch CRL"
                 warnings.append(msg)
                 request_error = True
 

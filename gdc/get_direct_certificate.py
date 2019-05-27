@@ -10,7 +10,6 @@ import base64
 import dns.resolver
 import ldap
 from OpenSSL import crypto
-from collections import OrderedDict
 from parse_certificate import build_chain
 
 
@@ -80,7 +79,8 @@ class DCert:
             if ldap_response.startswith("-----BEGIN CERTIFICATE-----"):
                 response = response + ldap_response
             else:
-                self.ldap_response.update({'is_found': False, 'message': response})
+                self.ldap_response.update(
+                    {'is_found': False, 'message': response})
                 response = ""
 
         if not response:
@@ -103,7 +103,7 @@ class DCert:
 
         # If an email address was given
         if email_endpoint:
-             # If an email address was given
+            # If an email address was given
             # First try the validation  against the domain part only
             self.endpoint = email_domain
             email_domain_bound_dns = self.validate_certificate_dns(
@@ -202,7 +202,10 @@ class DCert:
                 {
                     "status": 412,
                     "message": "No Name Servers. Network failure. No certificate found.",
-                    "details": "You may be disconnected from the Internet. If you have an Internet connection then a certificate may exist, but or your intetrnet service provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."})
+                    "details": "You may be disconnected from the Internet. \
+                                If you have an Internet connection then a certificate may exist, \
+                                but or your Internet service provider (ISP) blocks large DNS requests. \
+                                Many ISPs do this block including Time Warner Cable and Frontier Cable."})
 
         except dns.resolver.NoAnswer:
             response.update(
@@ -216,7 +219,8 @@ class DCert:
                 {
                     "status": 500,
                     "message": "Timeout",
-                    "details": "The certifcate may exist but or your intetrnet service provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."})
+                    "details": "The certifcate may exist but or your Internet service provider (ISP) blocks large DNS requests. \
+                    Many ISPs do this block including Time Warner Cable and Frontier Cable."})
         self.dns_response = response
         return self.dns_response
 
@@ -233,51 +237,50 @@ class DCert:
 
         except dns.resolver.NoNameservers:
             response.update({"status": 412, "message": "Network failure. "
-                        "details" "You appear to be disconnected from the Internet.",
-                        "is_found":False })
-            error=True
-    
+                             "details" "You appear to be disconnected from the Internet.",
+                             "is_found": False})
+            error = True
+
         except dns.resolver.NXDOMAIN:
             response.update({"status": 404, "message": "No certificate found.",
-                        "details" : "No LDAP server was found.","is_found":False  })
-            error=True
-    
+                             "details": "No LDAP server was found.", "is_found": False})
+            error = True
+
         except dns.resolver.NoAnswer:
-            response.update( {"status": 404, "message": "No certificate found.",
-                        "details" :"The server did not provide an answer.",
-                        "is_found":False })
-            error=True
-       
+            response.update({"status": 404, "message": "No certificate found.",
+                             "details": "The server did not provide an answer.",
+                             "is_found": False})
+            error = True
+
         if error:
             return response
-        
+
         try:
             servers = [{
                 'port': s.port,
                 'priority': s.priority,
                 'host': s.target.to_text()
             } for s in ldap_servers]
-    
+
             ldap_results = []
-    
+
             for s in servers:
                 url = "ldap://%(host)s:%(port)s" % s
                 l = ldap.initialize(url)
                 l.set_option(ldap.OPT_NETWORK_TIMEOUT, 10.0)
-                
-                
+
                 result_id = l.search("", ldap.SCOPE_SUBTREE,
-                                         "mail=%s" % self.endpoint, None)
-    
+                                     "mail=%s" % self.endpoint, None)
+
                 while True:
                     rtype, rdata = l.result(result_id, 0)
                     if rdata == []:
                         break
                     ldap_results.append((rtype, rdata))
-    
+
             # Only take valid results
             ldap_results = filter(lambda r: r[0] == 100, ldap_results)
-    
+
             # Extract binary (DER) certs from responses
             cert_ders = ["".join(r[1][0][1]['userCertificate'])
                          for r in ldap_results]
@@ -288,7 +291,7 @@ class DCert:
                         fn = "%s_%s.pem" % (self.endpoint, i)
                     else:
                         fn = "%s.pem" % (self.endpoint)
-    
+
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
                     fh.writelines(base64.encodestring(c).rstrip())
@@ -298,35 +301,36 @@ class DCert:
                 cert_string = "-----BEGIN CERTIFICATE-----\n" +\
                               base64.encodestring(c).rstrip() +\
                               "\n-----END CERTIFICATE-----\n"
-                x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_string)
-    
+                x509 = crypto.load_certificate(
+                    crypto.FILETYPE_PEM, cert_string)
+
                 # Get all the goodies
                 cert_detail = build_chain(x509, self.endpoint)
-    
+
                 # Add it to the list (we use a list beacuse there can be more than
                 # one.)
                 ldap_cert_list.append(cert_detail)
-    
+
                 i += 1
-    
+
             msg = "The certificate %s was found." % (self.endpoint)
-    
+
             response.update({"status": 200, "message": msg, "is_found": True,
                              "cert_details": ldap_cert_list})
 
         except ldap.SERVER_DOWN:
-            result_id  = 0
+            result_id = 0
             response.update({"status": 404,
-                                 "message": "No certificate found.",
-                                 "details": "The server did not provide an answer.",
-                                 "is_found": False})
+                             "message": "No certificate found.",
+                             "details": "The server did not provide an answer.",
+                             "is_found": False})
         except ldap.OPERATIONS_ERROR:
-            result_id  = 0
+            result_id = 0
             response.update({"status": 404,
-                                 "message": "No certificate found.",
-                                 "details": "The server did not provide an answer.",
-                                 "is_found": False})
-        
+                             "message": "No certificate found.",
+                             "details": "The server did not provide an answer.",
+                             "is_found": False})
+
         return response
 
     def get_certificate_dns(self, save_to_disk=True, file_extension="pem"):
@@ -359,13 +363,17 @@ class DCert:
             response = "No DNS server found. No certificate found."
 
         except dns.resolver.NoNameservers:
-            response = "No nameservers. Network failure. No certificate found. You may be disconnected from the Internet. If you have an Internet connection then a certificate may exist, but or your Intetrnet Service Provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."
+            response = "No nameservers. Network failure. No certificate found. You may be disconnected from the Internet. \
+                       If you have an Internet connection then a certificate may exist, but or your Internet Service \
+                       Provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable \
+                       and Frontier Cable."
 
         except dns.resolver.NoAnswer:
             response = "No Answer. The server did not provide an answer. No certificate was found."
 
         except dns.exception.Timeout:
-            response = "Timeout. A certificate may exist, but or your Intetrnet service provider (ISP) blocks large DNS requests. Many ISPs do this block including Time Warner Cable and Frontier Cable."
+            response = "Timeout. A certificate may exist, but or your Internet service provider (ISP) blocks large DNS requests. \
+                       Many ISPs do this block including Time Warner Cable and Frontier Cable."
 
         return response
 
@@ -422,11 +430,7 @@ class DCert:
 
         for c in cert_ders:
             if save_to_disk:
-                if i > 1:
-                    fn = "%s_%s.%s" % (self.endpoint, i, file_extension)
-                else:
-                    fn = "%s.%s" % (self.endpoint, file_extension)
-
+                fn = "%s.%s" % (self.endpoint, file_extension)
                 fh = open(fn, "w")
                 fh.writelines("-----BEGIN CERTIFICATE-----\n")
                 fh.writelines(base64.encodestring(c).rstrip())
