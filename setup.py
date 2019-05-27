@@ -71,7 +71,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.1.2.0",
+      version="0.1.2.1",
       description="Library of tools for fetching and parsing x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors.\
           Requires dnspython and python-ldap to be installed and python-dev \
@@ -85,5 +85,5 @@ setup(name="getdc",
       packages=packages,
       include_package_data=True,
       scripts=['gdc/get_direct_certificate.py', 'gdc/parse_certificate.py', 'gdc/process_nppes_endpoint_file.py',
-               'gdc/getdc_microservice.py']
+               'gdc/getdc_microservice.py', 'gdc/getdc_microservice_verbose.py']
       )

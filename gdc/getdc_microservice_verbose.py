@@ -38,8 +38,8 @@ class GetHandler(BaseHTTPRequestHandler):
         response["valid_email"] = is_valid_email
         dc = DCert(response['endpoint'])
         dc.validate_certificate(False)
-        response["CN"] = dc.result['is_found']
         response["direct_address"] = dc.result['is_found']
+        response["details"] = dc.result
         # self.send_response(200)
         self.end_headers()
         j = json.dumps(response, indent=2).encode('utf8')
