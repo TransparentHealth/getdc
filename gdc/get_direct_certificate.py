@@ -10,7 +10,7 @@ import base64
 import dns.resolver
 import ldap
 from OpenSSL import crypto
-from .parse_certificate import build_chain
+from parse_certificate import build_chain
 
 
 class DCert:
@@ -279,7 +279,7 @@ class DCert:
                     ldap_results.append((rtype, rdata))
 
             # Only take valid results
-            ldap_results = [r for r in ldap_results if r[0] == 100]
+            ldap_results = filter(lambda r: r[0] == 100, ldap_results)
 
             # Extract binary (DER) certs from responses
             cert_ders = ["".join(r[1][0][1]['userCertificate'])
@@ -421,7 +421,7 @@ class DCert:
                 ldap_results.append((rtype, rdata))
 
         # Only take valid results
-        ldap_results = [r for r in ldap_results if r[0] == 100]
+        ldap_results = filter(lambda r: r[0] == 100, ldap_results)
 
         # Extract binary (DER) certs from responses
         cert_ders = ["".join(r[1][0][1]['userCertificate'])
@@ -460,4 +460,4 @@ if __name__ == "__main__":
 
         dc = DCert(endpoint)
         dc.validate_certificate(download_certificate)
-        print((json.dumps(dc.result, indent=4).encode('utf8')))
+        print(json.dumps(dc.result, indent=4).encode('utf8'))
