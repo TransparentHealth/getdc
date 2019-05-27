@@ -38,7 +38,6 @@ class GetHandler(BaseHTTPRequestHandler):
         response["valid_email"] = is_valid_email
         dc = DCert(response['endpoint'])
         dc.validate_certificate(False)
-        response["CN"] = dc.result['is_found']
         response["direct_address"] = dc.result['is_found']
         # self.send_response(200)
         self.end_headers()
