@@ -67,7 +67,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.1.1.7",
+      version="0.1.1.9",
       description="Library of tools for fetching and parsing x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors. 
           Requires dnspython and python-ldap to be installed and python-dev libldap2-dev libsasl2-dev need to be installed 

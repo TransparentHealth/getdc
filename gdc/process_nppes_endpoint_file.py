@@ -11,7 +11,7 @@ __author__ = "Alan Viars"
 
 
 def process_endpoint_csv(input_csv_filepath,
-                          output_csv_filepath="output.csv"):
+                         output_csv_filepath="output.csv"):
     output_fieldnames = [
         "NPI",
         "EndpointType",
@@ -19,8 +19,8 @@ def process_endpoint_csv(input_csv_filepath,
         "ValidEmail",
         "ValidDirect",
         "Details"]
-    input_fh = open(input_csv_filepath, 'r', newline='')
-    output_fh = open(output_csv_filepath, 'w', newline='')
+    input_fh = open(input_csv_filepath, 'r')
+    output_fh = open(output_csv_filepath, 'w')
     input_csv = csv.reader(input_fh, delimiter=',')
     writer = csv.DictWriter(output_fh, fieldnames=output_fieldnames)
     writer.writeheader()
@@ -48,17 +48,18 @@ def process_endpoint_csv(input_csv_filepath,
         outrow['Details'] = ""
         writer.writerow(outrow)
 
-    print(input_csv_filepath, output_csv_filepath)
+    # print(input_csv_filepath, output_csv_filepath)
     input_fh.close()
     output_fh.close()
-
+    print("Output CVS written to %s" % (output_csv_filepath))
 
 if __name__ == "__main__":
 
     # Get the file from the command line
     if len(sys.argv) not in (2, 3):
-        print("You must supply an NPPES endpoint input file")
-        print("Usage: getdc [nppes_endpoint_file] [nppes_output_file]")
+        print("You must supply an NPPES endpoint input file. If the destination file is omitted, the default is output.csv")
+        print(
+            "Usage: process_nppes_endpoint_file.py [nppes_endpoint_file] <nppes_output_file>")
         sys.exit(1)
     else:
         if len(sys.argv) is 2:
