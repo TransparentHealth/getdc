@@ -1,18 +1,26 @@
-Get Direct Certificate - A Command Line Utility and API for Certificate Discovery
-=================================================================================
+Get Direct Certificate - A toolkit for Certificate Discovery
+============================================================
 
-Written By Alan Viars @aviars with contributions from Josh Mandel @JoshCMandel 
 
-Version 0.9.8.6
-
-The `getdc` tool is designed to simplify and automate Direct certificate
-discovery, however, it can be used to fetch any x509 certificate from LDAP
+GetDC is a set of tools designed to simplify and automate Direct certificate
+discovery. It can however, can be used to fetch any x509 certificate from LDAP
 or DNS.
 
-The command line utility and API attempts to fetch an x509 
-certificate, or certificates, from DNS and.or LDAP.  If found, the utility
-saves the certificate, or certificates, as a `.pem` file in the local file
-system. A top level boolean variable `is_found` contains the flag indicating
+For more information on Direct see http://wiki.directproject.org/Applicability_Statement_for_Secure_Health_Transport
+and https://www.healthit.gov/test-method/direct-project
+
+
+The toolkit includes the following:
+
+* A micro web-service for fetching certificate discovery results.
+* Command-line utility for fetching and downloading certificates
+
+System Behavior
+---------------
+
+An address is supplied as input to the command line utility or webservice.
+The output is a JSON document containing results. A top level Boolean
+variable `is_found` contains the flag indicating
 if the certificate was found or not.
 
 If an email address is presented the tool will first attempt to look up and
@@ -46,7 +54,7 @@ The following instructions are for Ubuntu.
 Command Line Utility
 --------------------
 
-A response is printed as JSON to stdout indicating wheather the certificate was found or
+A response is printed as JSON to stdout indicating whether the certificate was found or
 not via LDAP or DNS.
 
 Usage:
@@ -56,19 +64,20 @@ Usage:
 
 Example 1: Discover a certificate via DNS and download the certificate.
 
-    $ get_direct_certificate.py hit-testing.nist.gov Y
+    $ get_direct_certificate.py ett.healthit.gov Y
     
     {
         "is_found": true, 
         "dns": {
-            "status": 200, domain2.demo.direct-test.com Y
+            "status": 200, ett.healthit.gov Y
             "cert_details": [
                 {
                     "is_expired": false
                 }
             ], 
-            "message": "The certificate hit-testing.nist.gov was found.", 
-            "is_found": true
+            "message": "The certificate ett.healthit.gov was found.", 
+            "is_found": true,
+            ...omitted for brevity...
         }, 
         "ldap": {
             "status": 404, 
@@ -80,28 +89,30 @@ Example 1: Discover a certificate via DNS and download the certificate.
 
 Example 1.1: Print out the resulting PEM certificate as text.
 
-    > cat hit-testing.nist.gov.pem
+    > cat ett.healthit.gov.pem
     -----BEGIN CERTIFICATE-----
-    MIIEJTCCAw2gAwIBAgIBBjANBgkqhkiG9w0BAQsFADBsMQswCQYDVQQGEwJVUzELMAkGA1UECAwC
-    TUQxFTATBgNVBAcMDEdhaXRoZXJzYnVyZzENMAsGA1UECgwETklTVDERMA8GA1UEAwwIbmlzdC5n
-    b3YxFzAVBgkqhkiG9w0BCQEWCG5pc3QuZ292MB4XDTE0MDQwMjE0MDEyOFoXDTE2MDQwMTE0MDEy
-    OFowgYQxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJNRDEVMBMGA1UEBwwMR2FpdGhlcnNidXJnMQ0w
-    CwYDVQQKDAROSVNUMR0wGwYDVQQDDBRoaXQtdGVzdGluZy5uaXN0LmdvdjEjMCEGCSqGSIb3DQEJ
-    ARYUaGl0LXRlc3RpbmcubmlzdC5nb3YwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDQ
-    2Dhq3mH3zkl+8gmELWdVA5ZpPoSS0dyl0RuBt+UceP3w2fQHHOkSj92ZGjpSMWbrXtlsFa2daVGZ
-    2EDjv5EpDTw55U7rSuD1S7scpmsYL7w3RhfFfhF2KLc63Z3v7EaVhp3Bora7kMJMSIlPrvIuQFTA
-    zBy7Lbal9PiMPOuiPdrcon5OMDg7JOVBFyzq1bq0pm82q2PPPoXymHLXKfsBT0jjNtnKSFSJe12n
-    2ibYqgk+T7XaRjaBCDyMkKfAkRI348zhFW7BgRnIUW+2hePQTleAYzci/AGSpbKrt5Ary9PDYCBC
-    WHvbQdi9Cv7BGSCF+4xWPS9X9b9dE/wKX43RAgMBAAGjgbgwgbUwCQYDVR0TBAIwADAfBgNVHREE
-    GDAWghRoaXQtdGVzdGluZy5uaXN0LmdvdjAdBgNVHQ4EFgQUi2D+g5UA4HxZB+1WQ3TKhE26cEUw
-    HwYDVR0jBBgwFoAU2b5OviFqiWCvpYQPeeWHf/+8RF0wCwYDVR0PBAQDAgWgMDoGA1UdHwQzMDEw
-    L6AtoCuGKWh0dHA6Ly9zYW1wbGVjYS5uaXN0Lmdvdi9jcmwvbmlzdC5nb3YuY3JsMA0GCSqGSIb3
-    DQEBCwUAA4IBAQC1kG1vB0xMasYozmduZiqmM2lqYtXKw5t9pIBB+VqAweg7d29gQMF2/5c6ZKRZ
-    FGdcWY04EOYIM88qitqEfgebe4eEX2NmyGreCJL/RH7Cl0ex5vbospL0uCO4NulRg/hFoOKOEkFD
-    bL33Zj57kRvjK5WcvmtQe1rO/QuV5+n1+MGjy2+BPzPqXNqZRz8N8XSkKfLf0K3OlLHSItgCrvWo
-    5JXGI0AZRVF4qxb6qgkywpRGu8LRs5qKQyzpJ91vZiLr/5ARhPsEKImEXb4VQqD8UgkeSxUHnyQV
-    GneC5c7K3HW1/GmvYwTybLeDM+mnDzKD/6Nb2qXTUffHoTWtHF8M
-    -----END CERTIFICATE---- 
+    MIIEoTCCA4mgAwIBAgICAacwDQYJKoZIhvcNAQELBQAwgY0xCzAJBgNVBAYTAlVTMQswCQYDVQQI
+    DAJNRDEOMAwGA1UEBwwFQm95ZHMxEzARBgNVBAoMCkRyYWplciBMTEMxIjAgBgNVBAMMGWludGVy
+    bWVkaWF0ZS5oZWFsdGhpdC5nb3YxKDAmBgkqhkiG9w0BCQEWGWludGVybWVkaWF0ZS5oZWFsdGhp
+    dC5nb3YwHhcNMTgwOTI1MTgyNDIzWhcNMjgwOTIyMTgyNDIzWjB7MQswCQYDVQQGEwJVUzELMAkG
+    A1UECAwCTUQxDjAMBgNVBAcMBUJveWRzMRMwEQYDVQQKDApEcmFqZXIgTExDMRkwFwYDVQQDDBBl
+    dHQuaGVhbHRoaXQuZ292MR8wHQYJKoZIhvcNAQkBFhBldHQuaGVhbHRoaXQuZ292MIIBIjANBgkq
+    hkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxaA2MIuaqpvP2Id85KIhUVA6zlj+CgZh/3prgJ1q4leP
+    3T5F1tSSgrQ/WYTFglEwN7FJx4yJ324NaKncaMPDBIg3IUgC3Q5nrPUbIJAUgM5+67pXnGgt6s9b
+    QelEsTdbyA/JlLC7Hsv184mqo0yrueC9NJEea4/yTV51G9S4jLjnKhr0XUTw0Fb/PFNL9ZwaEdFg
+    QfUaE1maleazKGDyLLuEGvpXsRNs1Ju/kdHkOUVLf741Cq8qLlqOKN2v5jQkUdFUKHbYIF5KXt4T
+    oV9mvxTaz6Mps1UbS+a73Xr+VqmBqmEQnXA5DZ7ucikzv9DLokDwtmPzhdqye2msgDpw0QIDAQAB
+    o4IBGjCCARYwCQYDVR0TBAIwADAbBgNVHREEFDASghBldHQuaGVhbHRoaXQuZ292MB0GA1UdDgQW
+    BBQ6E22jc99mm+WraUj93IvQcw6JHDAfBgNVHSMEGDAWgBRfW20fzencvG+Attm1rcvQV+3rOTAL
+    BgNVHQ8EBAMCBaAwSQYDVR0fBEIwQDA+oDygOoY4aHR0cDovL2NhLmRpcmVjdGNhLm9yZy9jcmwv
+    aW50ZXJtZWRpYXRlLmhlYWx0aGl0Lmdvdi5jcmwwVAYIKwYBBQUHAQEESDBGMEQGCCsGAQUFBzAC
+    hjhodHRwOi8vY2EuZGlyZWN0Y2Eub3JnL2FpYS9pbnRlcm1lZGlhdGUuaGVhbHRoaXQuZ292LmRl
+    cjANBgkqhkiG9w0BAQsFAAOCAQEAhCASLubdxWp+XzXO4a8zMgWOMpjft+ilIy2ROVKOKslbB7lK
+    x0NR7chrTPxCmK+YTL2ttLaTpOniw/vTGrZgeFPyXzJCNtpnx8fFipPE18OAlKMc2nyy7RfUscf2
+    8UAEmFo2cEJfpsZjyynkBsTnQ5rQVNgM7TbXXfboxwWwhg4HnWIcmlTs2YM1a9v+idK6LSfX9y/N
+    vhf9pl0DQflc9ym4z/XCq87erCce+11kxH1+36N6rRqeiHVBYnoYIGMH690r4cgE8cW5B4eK7kaD
+    3iCbmpChO0gZSa5Lex49WLXeFfM+ukd9y3AB00KMZcsUV5bCgwShH053ZQa+FMON8w==
+    -----END CERTIFICATE-----
 
 Example 2: Get a non-existent domain or one not running LDAP or DNS.
 
@@ -143,7 +154,7 @@ Example 3: Get a certificate via LDAP.
 
 Example 3.1: Print out the contents of the certificate with openssl.
 
-There are many tools for this purpose. Openssl is just an example.
+(There are many tools for this purpose. Openssl is just an example.)
 
     $ openssl x509 -in domain2.demo.direct-test.com.pem -inform PEM -noout -text
 
@@ -159,8 +170,37 @@ There are many tools for this purpose. Openssl is just an example.
 
 
 
-Application Programming Interface (API) for Python`get_certificate_dns
-----------------------------------------------------------------------
+Microservice
+------------
+
+The microservice is designed to facilitate real-time validation of direct addresses.
+It can be used by a front-end client or a backend operation.  Provide an IP address or hostname,
+and a port number to start the service.  For example:
+
+
+
+    python ./getdc_microservice.py localhost 8888
+
+
+You can test it out with and web client.  For example, using curl
+
+
+    curl http://localhost:8888/foo@example.com
+
+
+Responds with:
+
+
+   {
+  "endpoint": "foo@example.com", 
+  "valid_email": true, 
+  "direct_address": false
+   }
+
+
+
+Python Library
+-------------
 
 The DCert class defines six functions; 3 get functions and 3 validate functions. 
 The get functions are `get_certificate_dns`, `get_certificate_ldap`, and
@@ -179,7 +219,7 @@ Below is an example of verify_certificate:
 
     >>> from gdc.get_direct_certificate import DCert
     >>> import json
-    >>>  d = DCert("hit-testing.nist.gov")
+    >>>  d = DCert("ett.healthit.gov")
     >>> result = d.verify_certificate()
     >>> result['is_found']
     >>> True   # A certificate was found by at least one of the methods
