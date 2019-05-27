@@ -4,6 +4,7 @@ from distutils.command.install import INSTALL_SCHEMES
 import os
 import sys
 
+
 class osx_install_data(install_data):
     # On MacOS, the platform-specific lib dir is /System/Library/Framework/Python/.../
     # which is wrong. Python 2.5 supplied with MacOS 10.5 has an Apple-specific fix
@@ -21,6 +22,7 @@ if sys.platform == "darwin":
     cmdclasses = {'install_data': osx_install_data}
 else:
     cmdclasses = {'install_data': install_data}
+
 
 def fullsplit(path, result=None):
     """
@@ -53,11 +55,13 @@ getdc_dir = 'gdc'
 for dirpath, dirnames, filenames in os.walk(getdc_dir):
     # Ignore dirnames that start with '.'
     for i, dirname in enumerate(dirnames):
-        if dirname.startswith('.'): del dirnames[i]
+        if dirname.startswith('.'):
+            del dirnames[i]
     if '__init__.py' in filenames:
         packages.append('.'.join(fullsplit(dirpath)))
     elif filenames:
-        data_files.append([dirpath, [os.path.join(dirpath, f) for f in filenames]])
+        data_files.append([dirpath, [os.path.join(dirpath, f)
+                                     for f in filenames]])
 
 # Small hack for working with bdist_wininst.
 # See http://mail.python.org/pipermail/distutils-sig/2004-August/004134.html
@@ -67,20 +71,19 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.1.1.9",
+      version="0.1.2.0",
       description="Library of tools for fetching and parsing x509 certificate from DNS and LDAP",
-      long_description="""Outputs a JSON object of success or errors. 
-          Requires dnspython and python-ldap to be installed and python-dev libldap2-dev libsasl2-dev need to be installed 
-          on your system.""",
+      long_description="""Outputs a JSON object of success or errors.\
+          Requires dnspython and python-ldap to be installed and python-dev \
+          libldap2-dev libsasl2-dev need to be installed on your system.""",
       author="Alan Viars",
       author_email="sales@videntity.com",
       url="https://gitbub.com/transparenthealth/getdc",
       download_url="https://gitbub.com/transparenthealth/getdc/tarball/master",
       install_requires=[
-        'dnspython', 'python-ldap', 'pyopenssl', 'cryptography', 'requests', 'validate_email'],
+          'dnspython', 'python-ldap', 'pyopenssl', 'cryptography', 'requests', 'validate_email'],
       packages=packages,
       include_package_data=True,
       scripts=['gdc/get_direct_certificate.py', 'gdc/parse_certificate.py', 'gdc/process_nppes_endpoint_file.py',
                'gdc/getdc_microservice.py']
       )
-
