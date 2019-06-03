@@ -71,7 +71,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 
 setup(name="getdc",
-      version="0.1.2.1",
+      version="0.1.2.2",
       description="Library of tools for fetching and parsing x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors.\
           Requires dnspython and python-ldap to be installed and python-dev \
