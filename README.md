@@ -1,5 +1,5 @@
-Get Direct Certificate - A toolkit for Certificate Discovery
-============================================================
+Get Direct Certificate - A Toolkit for Certificate Discovery in DNS and LDAP
+============================================================================
 
 
 GetDC is a set of tools designed to simplify and automate Direct certificate
@@ -52,7 +52,7 @@ The following instructions are for Ubuntu.
 
 
 Command Line Utility
---------------------
+====================
 
 A response is printed as JSON to stdout indicating whether the certificate was found or
 not via LDAP or DNS.
@@ -134,29 +134,30 @@ Example 2: Get a non-existent domain or one not running LDAP or DNS.
         }
     }
 
-Example 3: Get a certificate via LDAP.
+Example 3: Get a certificate via LDAP. Two are returned.
 
-    $ get_direct_certificate.py domain2.demo.direct-test.com Y
+    $ get_direct_certificate.py d4@domain2.dcdt31prod.sitenv.org Y
     
     {
-            "is_found": true, 
-            "dns": {
-                "status": 404, 
-                "message": "The server did not provide an answer. No certificate found.", 
-                "is_found": false
+    "is_found": true, 
+       "dns": {
+            "status": 404, 
+            "message": "The server did not provide an answer. No certificate found.", 
+            "is_found": false
         }, 
         "ldap": {
-            "status": 200, 
-            "message": "certificate domain2.demo.direct-test.com found.", 
-            "is_found": true
+             "status": 200, 
+             "message": "certificate domain2.demo.direct-test.com found.", 
+             "is_found": true
         }
     }
 
 Example 3.1: Print out the contents of the certificate with openssl.
+--------------------------------------------------------------------
 
 (There are many tools for this purpose. Openssl is just an example.)
 
-    $ openssl x509 -in domain2.demo.direct-test.com.pem -inform PEM -noout -text
+    $ openssl x509 -in d4@domain2.dcdt31prod.sitenv.org.pem -inform PEM -noout -text
 
     Certificate:
     Data:
@@ -171,12 +172,10 @@ Example 3.1: Print out the contents of the certificate with openssl.
 
 
 Microservice
-------------
+============
 
 The microservice is designed to facilitate real-time validation of direct addresses.
-It can be used by a front-end client or a backend operation.  Provide an IP address or hostname,
-and a port number to start the service.  For example:
-
+Provide an IP address or hostname, and a port number to start the service.  For example:
 
 
     python ./getdc_microservice.py localhost 8888
