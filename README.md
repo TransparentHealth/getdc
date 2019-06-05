@@ -6,8 +6,9 @@ GetDC is a set of tools designed to simplify and automate Direct certificate
 discovery. It can however, can be used to fetch any x509 certificate from LDAP
 or DNS.
 
-For more information on Direct see http://wiki.directproject.org/Applicability_Statement_for_Secure_Health_Transport
-and https://www.healthit.gov/test-method/direct-project
+For more information on Direct see 
+http://wiki.directproject.org/Applicability_Statement_for_Secure_Health_Transport and 
+https://www.healthit.gov/test-method/direct-project
 
 
 The toolkit includes the following:
@@ -18,14 +19,14 @@ The toolkit includes the following:
 System Behavior
 ---------------
 
-An address is supplied as input to the command line utility or webservice.
+An address or domain is supplied as input to the command line utility or webservice.
 The output is a JSON document containing results. A top level Boolean
 variable `is_found` contains the flag indicating
-if the certificate was found or not.
+if a certificate was found or not.
 
 If an email address is presented the tool will first attempt to look up and
-return a domain bound certificate.  If that fails, the tool will attempt to
-look up an email-bound certificate. The response will indicate whether a
+return a email bound certificate.  If that fails, the tool will attempt to
+look up an domain-bound certificate. The response will indicate whether a
 domain-bound or email-bound certificate was retrieved. For this feature to work,
 use the "@" symbol in the endpoint and not the DNS representation.
 (e.g. "john@direct.example.com" instead of "john.direct.example.com".
@@ -38,7 +39,13 @@ You need to make sure you have the prerequisites for the application.
 The following instructions are for Ubuntu.
 
     sudo apt-get install -y python-ldap python-dnspython python-openssl
+    
+If you are using Redhat, CentOS, or Fedora, install the prereqisuites with the following command.
 
+
+    sudo yum install redhat-rpm-config gcc libffi-devel python-devel openssl-devel
+
+    
 ...then you can install with pip
 
     sudo pip install getdc
