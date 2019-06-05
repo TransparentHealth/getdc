@@ -22,6 +22,13 @@ class TestGetDirectCertificate(unittest.TestCase):
         self.assertTrue(dc.result['is_found'])
         self.assertTrue(dc.result['dns']['is_found'])
 
+    def test_dns_email_bound_cert_found(self):
+        endpoint = "no-aia@ett.healthit.gov"
+        dc = DCert(endpoint)
+        dc.validate_certificate(download_certificate=False)
+        self.assertTrue(dc.result['is_found'])
+        self.assertTrue(dc.result['dns']['is_found'])
+
     def test_ldap_cert_found(self):
         endpoint = "d4@domain2.dcdt31prod.sitenv.org"
         dc = DCert(endpoint)
