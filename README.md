@@ -53,7 +53,7 @@ If you are using Redhat, CentOS, or Fedora, install the prereqisuites with the f
 ...or to install from source or into a virtualenv (on Ubuntu):
 
 
-    sudo apt-get install -y build-essential python-dev libldap2-dev libsasl2-dev libffi-dev libssl-dev 
+    sudo apt-get install -y build-essential python3-dev libldap-dev libsasl2-dev libffi-dev libssl-dev 
     sudo pip install getdc
 
 
@@ -62,16 +62,15 @@ Command Line Utility
 ====================
 
 A response is printed as JSON to stdout indicating whether the certificate was found or
-not via LDAP or DNS.
+not via LDAP or DNS.  It also includes details about the certificates.
 
 Usage:
     
-    
-    get_direct_certificate.py [email/endpoint] [download Certificate Y/N]
+    get_direct_certificate.py [email/endpoint] [-d]
 
-Example 1: Discover a certificate via DNS and download the certificate.
+Example 1: Discover a certificate via DNS and download the certificate. Pass the optional `-d` flag to also download certificates found.
 
-    $ get_direct_certificate.py ett.healthit.gov Y
+    $ get_direct_certificate.py ett.healthit.gov -d
     
     {
         "is_found": true, 
