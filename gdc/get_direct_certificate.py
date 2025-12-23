@@ -341,6 +341,11 @@ class DCert:
                              "message": "No certificate found.",
                              "details": "The server did not provide an answer.",
                              "is_found": False})
+        except ldap.NO_SUCH_OBJECT:
+            response.update({"status": 404,
+                             "message": "No certificate found.",
+                             "details": "The LDAP entry does not exist for this email address.",
+                             "is_found": False})
 
         return response
 
