@@ -7,7 +7,7 @@ import base64
 import dns.resolver
 import ldap
 from OpenSSL import crypto
-from .parse_certificate import build_chain
+from gdc.parse_certificate import build_chain
 import argparse
 
 class DCert:
