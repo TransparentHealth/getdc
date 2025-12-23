@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4
-# Written by Alan Viars, Josh Mandel
 import requests
 import json
 import sys
 import os
 from OpenSSL import crypto
 from collections import OrderedDict
-
+import argparse
 
 class dummy_http_response(object):
     status_code = 0
@@ -33,10 +31,8 @@ def parsex509(x509, expected_bound_entity=""):
         serial_number = "0%s" % (serial_number)
     cert_detail['serial_number'] = serial_number.upper()
 
-    cert_detail['subject'] = dict(x509.get_subject().get_components())
+    cert_detail['subject'] = dict((k.decode('utf-8'), v.decode('utf-8')) for k, v in x509.get_subject().get_components())
     cert_detail["status"] = "ACTIVE"
-    cert_detail["revocation_status"] = "ACTIVE"
-    cert_detail["chain_status"] = "BROKEN"
 
     if x509.has_expired():
         cert_detail["is_expired"] = True
@@ -44,27 +40,37 @@ def parsex509(x509, expected_bound_entity=""):
     else:
         cert_detail["is_expired"] = False
 
-    cert_detail['no_aia'] = False
-    cert_detail['no_crl'] = False
+    cert_detail['aia_present'] = True
+    cert_detail['crl_present'] = True
 
-    cert_detail['issuer'] = dict(x509.get_issuer().get_components())
-    cert_detail['notBefore'] = x509.get_notBefore()
-    cert_detail['notAfter'] = x509.get_notAfter()
+    cert_detail['issuer'] = dict((k.decode('utf-8'), v.decode('utf-8')) for k, v in x509.get_issuer().get_components())
+    cert_detail['notBefore'] = x509.get_notBefore().decode('utf-8')
+    cert_detail['notAfter'] = x509.get_notAfter().decode('utf-8')
 
-    cert_detail['signature_algorithm'] = x509.get_signature_algorithm()
+    cert_detail['signature_algorithm'] = x509.get_signature_algorithm().decode('utf-8')
     cert_detail['version'] = x509.get_version()
 
     # Add the extensions ---------------------------------------
     extensions = OrderedDict()
     ext_count = x509.get_extension_count()
 
-    # check for CRLs or AIAs
-    short_names = [x509.get_extension(i).get_short_name()
-                   for i in range(ext_count)]
-    if "authorityInfoAccess" not in short_names:
-        cert_detail['no_aia'] = True
-    if "crlDistributionPoints" not in short_names:
-        cert_detail['no_crl'] = True
+    # check for CRLs or AIAs by looking through extensions
+    has_aia = False
+    has_crl = False
+    for i in range(ext_count):
+        ext = x509.get_extension(i)
+        name = ext.get_short_name()
+        if isinstance(name, bytes):
+            name = name.decode('utf-8')
+        if name == "authorityInfoAccess":
+            has_aia = True
+        if name == "crlDistributionPoints":
+            has_crl = True
+    
+    if not has_aia:
+        cert_detail['aia_present'] = False
+    if not has_crl:
+        cert_detail['crl_present'] = False
 
     # process each extension
     for i in range(ext_count):
@@ -82,18 +88,20 @@ def parsex509(x509, expected_bound_entity=""):
             "crlDistributionPoints",
             "authorityInfoAccess",
             "authorityKeyIdentifier",
-                "keyUsage"):
-            extensions[name] = value
+            "keyUsage"):
+            name_str = name.decode('utf-8') if isinstance(name, bytes) else name
+            value_str = value.decode('utf-8') if isinstance(value, bytes) else value
+            extensions[name_str] = value_str
         # otherwise we want to special parse
 
         elif name == "subjectAltName":
             try:
                 santype, sanvalue = value.split(":")
-                santypename = "%s%s" % (name, santype)
+                santypename = "%s%s" % (name.decode('utf-8') if isinstance(name, bytes) else name, santype)
                 extensions[santypename] = sanvalue
             except ValueError:
-                santypename = "%s%s" % (name, "unk")
-                extensions[santypename] = value
+                santypename = "%s%s" % (name.decode('utf-8') if isinstance(name, bytes) else name, "unk")
+            extensions[santypename] = value
         elif name == "crlDistributionPoints":
             crl_values = []
             crl_uris = []
@@ -103,10 +111,10 @@ def parsex509(x509, expected_bound_entity=""):
                 if cv.__contains__("URI:"):
                     u = cv.split(":", 1)
                     crl_uris.append(u[1])
-            crltypename = "%sURIs" % (name)
+            crltypename = "%sURIs" % (name.decode('utf-8') if isinstance(name, bytes) else name)
             if not crl_uris:
-                # Our list of CRLs is empty so flag
-                cert_detail['no_crl'] = True
+            # Our list of CRLs is empty so flag
+                cert_detail['crl_present'] = False
             extensions[crltypename] = crl_uris
 
         elif name == "authorityInfoAccess":
@@ -118,17 +126,17 @@ def parsex509(x509, expected_bound_entity=""):
                 if av.__contains__("URI:"):
                     a = av.split(":", 1)
                     aia_uris.append(a[1])
-            aiatypename = "%sURIs" % (name)
+            aiatypename = "%sURIs" % (name.decode('utf-8') if isinstance(name, bytes) else name)
             if not aia_uris:
                 # Our list of AIAs is empty so flag
-                cert_detail['no_aia'] = True
+                cert_detail['aia_present'] = False
 
             extensions[aiatypename] = aia_uris
         elif name == "authorityKeyIdentifier":
             akiname, akivalue = value.split(":", 1)
             akivalue = akivalue.split("\n", 1)
 
-            akitypename = "%s%s" % (name, akiname)
+            akitypename = "%s%s" % (name.decode('utf-8') if isinstance(name, bytes) else name, akiname)
             extensions[akitypename] = akivalue[0]
 
         elif name == "keyUsage":
@@ -137,7 +145,6 @@ def parsex509(x509, expected_bound_entity=""):
             extensions["keyUsage"] = cusages
 
     cert_detail['extensions'] = extensions
-
     if extensions.get("subjectAltNameemail", ""):
         dot_version = extensions.get(
             "subjectAltNameemail", "").replace("@", ".")
@@ -145,7 +152,10 @@ def parsex509(x509, expected_bound_entity=""):
         dot_version = extensions.get("subjectAltNameDNS", "").replace("@", ".")
     else:
         dot_version = ""
-
+    expected_bound_entry_dns_prefix = "DNS:%s" % (expected_bound_entity)
+    if extensions.get("subjectAltName", "") == expected_bound_entry_dns_prefix:
+        cert_detail['bound_to_expected_entity'] = True
+    
     if extensions.get("subjectAltNameemail", "") == expected_bound_entity:
         cert_detail['bound_to_expected_entity'] = True
     if dot_version == expected_bound_entity:
@@ -171,27 +181,28 @@ def build_chain(x509, expected_bound_entity=""):
 
     cert_detail = parsex509(x509, expected_bound_entity)
 
-    cert_detail['chain'] = []
-    cert_detail['aia'] = validate_chain_link(cert_detail)
-    flat_chain.append(cert_detail)
-    cert_detail['chain'].append(cert_detail['aia'])
+    # cert_detail['chain'] = []
+    # cert_detail['aia'] = validate_chain_link(cert_detail)
+    # flat_chain.append(cert_detail)
+    # cert_detail['chain'].append(cert_detail['aia'])
 
-    parent = cert_detail['aia']['aia']
-    flat_chain.append(parent)
+    # parent = cert_detail['aia']['aia']
+    # flat_chain.append(parent)
 
-    while parent['no_aia'] is False:
-        parent = validate_chain_link(parent)
-        cert_detail['chain'].append(parent['aia'])
-        flat_chain.append(parent['aia'])
-        parent = parent['aia']
+    # while parent.get('aia_present', False) is True:
+    #    parent = validate_chain_link(parent)
+    #    cert_detail['chain'].append(parent['aia'])
+    #    flat_chain.append(parent['aia'])
+    #    parent = parent['aia']
 
-    cert_detail['chainVerification'] = verify_chain(flat_chain)
-    if cert_detail['chainVerification']['valid_chain']:
-        cert_detail["chain_status"] = "IN-TACT"
+    # cert_detail['chainVerification'] = verify_chain(flat_chain)
+    # if cert_detail['chainVerification']['valid_chain']:
+    #    cert_detail["chain_status"] = "IN-TACT"
 
-    cert_detail["revocation_status"] = cert_detail[
-        'chainVerification']['revocation_status']
+    # cert_detail["revocation_status"] = cert_detail[
+    #    'chainVerification']['revocation_status']
 
+    
     return cert_detail
 
 
@@ -251,8 +262,8 @@ def verify_chain(chain):
                 if 'revoked' in c:
                     if c['revoked']:
                         revocation_status = "REVOKED"
-        if r['no_crl']:
-            results["no_crl"] = True
+        if r['crl_present'] is False:
+            results["crl_present"] = False
             revocation_status = "UNDETERMINED"
 
     results["links"] = links
@@ -324,17 +335,17 @@ def verify_not_revoked(link):
                     try:
                         crl = crypto.load_crl(crypto.FILETYPE_ASN1, r.content)
                     except crypto.Error:
-                        crl_detail["no_crl"] = True
+                        crl_detail["crl_present"] = False
                         msg = "Error parsing CRL URI %s" % (u)
                         errors.append(msg)
 
                 except crypto.Error:
-                    crl_detail["no_crl"] = True
+                    crl_detail["crl_present"] = False
                     msg = "Error parsing CRL URI %s" % (u)
                     errors.append(msg)
             if crl:
 
-                crl_detail['no_crl'] = False
+                crl_detail['crl_present'] = True
                 # print "Parse the CRL", crl, u, "for serial ",
                 # link['serial_number']
                 crl_detail['serial_number'] = link['serial_number']
@@ -364,18 +375,18 @@ def verify_not_revoked(link):
         results['warnings'] = warnings
     if errors:
         results['errors'] = errors
-    no_crl = True
+    crl_present = False
     for c in crl_list:
-        if c['no_crl'] is False:
-            no_crl = False
+        if c['crl_present'] is True:
+            crl_present = True
 
-    if not no_crl:
-        results['no_crl'] = False
+    if crl_present:
+        results['crl_present'] = True
         results['crl'] = crl_list
         results['CN'] = link.get('CN')
     else:
-        results['no_crl'] = True
-        results['crl'] = [{"no_crl": True,
+        results['crl_present'] = False
+        results['crl'] = [{"crl_present": False,
                            "CN": link.get('CN'),
                            }, ]
 
@@ -453,12 +464,12 @@ def validate_chain_link(cert_detail):
                 aia = parsex509(x509)
             else:
                 aia = OrderedDict()
-                aia['no_aia'] = True
-    else:
-        msg = "No AIAs found for %s" % (cert_detail['subject']['CN'])
+                # aia['aia_present'] = False
+    else:    
+        msg = "No AIAs found for %s" % (cert_detail['subject'].get('CN'))
         warnings.append(msg)
         aia = OrderedDict()
-        aia['no_aia'] = True
+        # aia['aia_present'] = False
 
     if warnings:
         results['warnings'] = warnings
@@ -471,13 +482,22 @@ def validate_chain_link(cert_detail):
 
 if __name__ == "__main__":
 
-    # Get the file from the command line
-    if len(sys.argv) < 2:
-        print("You must supply a PEM certificate.")
-        print("Usage: parse_certificate.py [cert_file_name.pem]")
-        sys.exit(1)
 
-    file_name = sys.argv[1]
+
+    parser = argparse.ArgumentParser(description='Inspect a Direct Secure Messaging certificate.')
+    parser.add_argument(
+        dest='filename',
+        action='store',
+        help='The local path to the PEM certificate file to inspect.')
+    args = parser.parse_args()
+
+    # # Get the file from the command line
+    # if len(sys.argv) < 2:
+    #     print("You must supply a PEM certificate.")
+    #     print("Usage: parse_certificate.py [cert_file_name.pem]")
+    #     sys.exit(1)
+
+    file_name = args.filename
 
     x509 = open_cert(file_name)
 
@@ -487,4 +507,4 @@ if __name__ == "__main__":
 
     cert_detail = build_chain(x509, ebe)
     # print "Done."
-    print(json.dumps(cert_detail, indent=4))
+    print(json.dumps(cert_detail, indent=2))
