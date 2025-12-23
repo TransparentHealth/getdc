@@ -68,7 +68,7 @@ from setuptools import setup, find_packages
 
 
 setup(name="getdc",
-      version="0.2.2",
+      version="0.2.3",
       description="Library of tools for fetching and parsing x509 certificate from DNS and LDAP",
       long_description="""Outputs a JSON object of success or errors.\
           Requires dnspython and python-ldap to be installed and python-dev \
