@@ -49,7 +49,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) is not 3:
+    if len(sys.argv) != 3:
         print("You must supply a host/ip and a port.")
         print("Usage: python getdc_microservice.py [HOST-or-IP] [PORT]")
         print("Example: python getdc_microservice.py localhost 8888")

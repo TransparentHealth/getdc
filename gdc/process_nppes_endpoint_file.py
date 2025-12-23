@@ -62,7 +62,7 @@ if __name__ == "__main__":
             "Usage: process_nppes_endpoint_file.py [nppes_endpoint_file] <nppes_output_file>")
         sys.exit(1)
     else:
-        if len(sys.argv) is 2:
+        if len(sys.argv) == 2:
             process_endpoint_csv(sys.argv[1])
         else:
             process_endpoint_csv(sys.argv[1], sys.argv[2])

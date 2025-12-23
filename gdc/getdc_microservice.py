@@ -5,15 +5,7 @@ import sys
 from validate_email import validate_email
 from collections import OrderedDict
 from get_direct_certificate import DCert
-
-if (sys.version_info >= (3, 0)):
-    # Python 3 code in this block
-    from http.server import BaseHTTPRequestHandler, HTTPServer
-
-else:
-    # Python 2 code in this block
-    from BaseHTTPServer import BaseHTTPRequestHandler
-    from BaseHTTPServer import HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 __author__ = "Alan Viars"
@@ -48,7 +40,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) is not 3:
+    if len(sys.argv) != 3:
         print("You must supply a host/ip and a port.")
         print("Usage: python getdc_microservice.py [HOST-or-IP] [PORT]")
         print("Example: python getdc_microservice.py localhost 8888")
