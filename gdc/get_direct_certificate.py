@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4
-# Written by Alan Viars, Josh Mandel
 
 import json
 import sys
-import dns.query
 import base64
 import dns.resolver
 import ldap
 from OpenSSL import crypto
 from parse_certificate import build_chain
-
+import argparse
 
 class DCert:
 
@@ -90,7 +87,7 @@ class DCert:
 
     def validate_certificate(self, download_certificate=False):
 
-        result = {}
+        result = {'is_found': False}
 
         # Check to see if there is an @ symbol to detect email;
         if self.endpoint.__contains__("@"):
@@ -160,10 +157,11 @@ class DCert:
         self.endpoint = self.endpoint.replace("@", ".")
 
         try:
-            answers = dns.resolver.query(self.endpoint, 'CERT')
+            answers = dns.resolver.resolve(self.endpoint, 'CERT')
             i = 1
 
             for rdata in answers:
+                #print("rdata", rdata)
                 if download_certificate:
                     if i > 1:
                         fn = "%s_%s.pem" % (self.endpoint, i)
@@ -171,14 +169,14 @@ class DCert:
                         fn = "%s.pem" % (self.endpoint)
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                    fh.writelines(base64.encodestring(
-                        rdata.certificate).rstrip().encode('utf8'))
+                    fh.writelines(base64.encodebytes(
+                        rdata.certificate).rstrip().decode('utf8'))
                     fh.writelines("\n-----END CERTIFICATE-----\n")
                     fh.close()
 
                 # Create a cert object so we can inspect it for more details
                 cert_string = "-----BEGIN CERTIFICATE-----\n" +\
-                              base64.encodestring(rdata.certificate).rstrip().decode('utf-8') +\
+                              base64.encodebytes(rdata.certificate).rstrip().decode('utf-8') +\
                               "\n-----END CERTIFICATE-----\n"
                 x509 = crypto.load_certificate(
                     crypto.FILETYPE_PEM, cert_string)
@@ -188,7 +186,8 @@ class DCert:
                 # Add it to the list (we use a list beacuse there can be more
                 # than one.)
                 dns_cert_list.append(cert_detail)
-            msg = "The certificate %s was found." % (self.endpoint)
+                i += 1
+            msg = "One or more certificates for %s were found." % (self.endpoint)
             response.update({"status": 200, "message": msg,
                              "is_found": True, "cert_details": dns_cert_list})
 
@@ -231,7 +230,7 @@ class DCert:
         self.endpoint = self.endpoint.replace("@", ".")
 
         try:
-            ldap_servers = dns.resolver.query(
+            ldap_servers = dns.resolver.resolve(
                 "_ldap._tcp." + self.endpoint, 'SRV').response.answer[0].items
             error = False
 
@@ -249,6 +248,18 @@ class DCert:
         except dns.resolver.NoAnswer:
             response.update({"status": 404, "message": "No certificate found.",
                              "details": "The server did not provide an answer.",
+                             "is_found": False})
+            error = True
+
+        except dns.resolver.LifetimeTimeout:
+            response.update({"status": 500, "message": "Timeout",
+                             "details": "The LDAP server was not found in DNS.",
+                             "is_found": False})
+            error = True
+        
+        except dns.resolver.Timeout:
+            response.update({"status": 500, "message": "Timeout",
+                             "details": "The LDAP server was not found in DNS.",
                              "is_found": False})
             error = True
 
@@ -336,14 +347,14 @@ class DCert:
     def get_certificate_dns(self, save_to_disk=True, file_extension="pem"):
         response = ""
         endpoint = self.endpoint.replace("@", ".")
-
         try:
             answers = dns.resolver.query(endpoint, 'CERT')
             i = 1
+            print("i--->",i)
             for rdata in answers:
                 if save_to_disk:
 
-                    if i > 1:
+                    if i >= 1:
                         fn = "%s_%s.%s" % (endpoint, i, file_extension)
                     else:
                         fn = "%s.%s" % (endpoint, file_extension)
@@ -380,7 +391,6 @@ class DCert:
     def get_certificate_ldap(self, save_to_disk=True, file_extension="pem"):
         response = ""
         self.endpoint = self.endpoint.replace("@", ".")
-
         try:
             ldap_servers = dns.resolver.query(
                 "_ldap._tcp." + self.endpoint, 'SRV').response.answer[0].items
@@ -430,14 +440,15 @@ class DCert:
 
         for c in cert_ders:
             if save_to_disk:
+                print("saving cert to disk")
                 fn = "%s.%s" % (self.endpoint, file_extension)
                 fh = open(fn, "w")
                 fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                fh.writelines(base64.encodestring(c).rstrip())
+                fh.writelines(base64.encodebytes(c).rstrip())
                 fh.writelines("\n-----END CERTIFICATE-----\n")
                 fh.close()
             response = response + "-----BEGIN CERTIFICATE-----\n" + \
-                base64.encodestring(c).rstrip() + \
+                base64.encodebytes(c).rstrip() + \
                 "\n-----END CERTIFICATE-----\n"
             i += 1
 
@@ -446,18 +457,15 @@ class DCert:
 
 if __name__ == "__main__":
 
-    # Get the file from the command line
-    if len(sys.argv) < 3:
-        print("You must supply an endpoint and indicate if you want to download the certificate or not.")
-        print("Usage: getdc [email/endpoint] [Download_Certificate Y/N]")
-        sys.exit(1)
-    else:
-        endpoint = sys.argv[1]
-        if sys.argv[2] in ("Y", "y", "yes", "t", "T", "true", "True"):
-            download_certificate = True
-        else:
-            download_certificate = False
+    parser = argparse.ArgumentParser(description='Get a certificate in from DNS and/or a public LDAP.')
+    parser.add_argument(
+        dest='endpoint',
+        action='store',
+        help='The endpoint to lookup in DNS and LDAP.  This is either a domain or email.')
+    parser.add_argument('-d', '--downloadcerts', action="store_true", help='Save the certs found to disk.')
+    args = parser.parse_args()
 
-        dc = DCert(endpoint)
-        dc.validate_certificate(download_certificate)
-        print(json.dumps(dc.result, indent=4).encode('utf8'))
+    dc = DCert(args.endpoint)
+    dc.validate_certificate(args.downloadcerts)
+
+    print(json.dumps(dc.result, indent=2))
