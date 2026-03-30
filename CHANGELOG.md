@@ -4,6 +4,37 @@ All notable changes to the getdc project will be documented in this file.
 
 ## [Unreleased] - 2026-03-30
 
+### Added - Configurable Timeout Parameters
+
+#### Summary
+Added configurable timeout parameters for DNS and LDAP operations to allow users to control network operation timeouts based on their requirements.
+
+#### Changes Made
+- Added `dns_timeout` parameter to `DCert.__init__()` (default: 5.0 seconds)
+- Added `ldap_timeout` parameter to `DCert.__init__()` (default: 10.0 seconds)
+- Updated all DNS resolver calls to use configurable timeout via `resolver.lifetime`
+- Updated all LDAP connection calls to use configurable timeout via `ldap.OPT_NETWORK_TIMEOUT`
+
+#### Usage
+```python
+from gdc import get_direct_certificate
+
+# Use default timeouts (DNS: 5s, LDAP: 10s)
+dc = DCert('example.com')
+
+# Custom timeouts
+dc = DCert('example.com', dns_timeout=10.0, ldap_timeout=20.0)
+
+# Faster timeouts for quick checks
+dc = DCert('example.com', dns_timeout=2.0, ldap_timeout=5.0)
+```
+
+#### Affected Methods
+- `validate_certificate_dns()` - Uses `dns_timeout`
+- `validate_certificate_ldap()` - Uses both `dns_timeout` (for SRV lookup) and `ldap_timeout`
+- `get_certificate_dns()` - Uses `dns_timeout`
+- `get_certificate_ldap()` - Uses both `dns_timeout` (for SRV lookup) and `ldap_timeout`
+
 ### Fixed - Python 3.11+ Compatibility
 
 #### Summary
