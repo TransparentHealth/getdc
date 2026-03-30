@@ -305,12 +305,12 @@ class DCert:
 
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                    fh.writelines(base64.encodestring(c).rstrip())
+                    fh.writelines(base64.encodebytes(c).rstrip().decode('utf-8'))
                     fh.writelines("\n-----END CERTIFICATE-----\n")
                     fh.close()
                 # Create a cert object so we can inspect it for more details
                 cert_string = "-----BEGIN CERTIFICATE-----\n" +\
-                              base64.encodestring(c).rstrip() +\
+                              base64.encodebytes(c).rstrip().decode('utf-8') +\
                               "\n-----END CERTIFICATE-----\n"
                 x509 = crypto.load_certificate(
                     crypto.FILETYPE_PEM, cert_string)
@@ -360,13 +360,13 @@ class DCert:
                         fn = "%s.%s" % (endpoint, file_extension)
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                    fh.writelines(base64.encodestring(
-                        rdata.certificate).rstrip())
+                    fh.writelines(base64.encodebytes(
+                        rdata.certificate).rstrip().decode('utf-8'))
                     fh.writelines("\n-----END CERTIFICATE-----\n")
                     fh.close()
                     i += 1
                 response = response + "-----BEGIN CERTIFICATE-----\n" + \
-                    base64.encodestring(rdata.certificate).rstrip() + \
+                    base64.encodebytes(rdata.certificate).rstrip().decode('utf-8') + \
                     "\n-----END CERTIFICATE-----\n"
             return response
 
@@ -444,11 +444,11 @@ class DCert:
                 fn = "%s.%s" % (self.endpoint, file_extension)
                 fh = open(fn, "w")
                 fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                fh.writelines(base64.encodebytes(c).rstrip())
+                fh.writelines(base64.encodebytes(c).rstrip().decode('utf-8'))
                 fh.writelines("\n-----END CERTIFICATE-----\n")
                 fh.close()
             response = response + "-----BEGIN CERTIFICATE-----\n" + \
-                base64.encodebytes(c).rstrip() + \
+                base64.encodebytes(c).rstrip().decode('utf-8') + \
                 "\n-----END CERTIFICATE-----\n"
             i += 1
 
