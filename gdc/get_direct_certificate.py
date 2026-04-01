@@ -15,12 +15,16 @@ class DCert:
     def __init__(self, endpoint,
                  download_certificate="N",
                  save_to_disk=True,
-                 file_extension="pem",):
+                 file_extension="pem",
+                 dns_timeout=5.0,
+                 ldap_timeout=10.0):
 
         self.endpoint = endpoint
         self.result = {}
         self.ldap_response = {}
         self.dns_response = {}
+        self.dns_timeout = dns_timeout
+        self.ldap_timeout = ldap_timeout
 
     def get_certificate(self, save_to_disk=False, file_extension="pem"):
         response = ""
@@ -157,7 +161,10 @@ class DCert:
         self.endpoint = self.endpoint.replace("@", ".")
 
         try:
-            answers = dns.resolver.resolve(self.endpoint, 'CERT')
+            # Create a custom resolver with configurable timeout
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = self.dns_timeout
+            answers = resolver.resolve(self.endpoint, 'CERT')
             i = 1
 
             for rdata in answers:
@@ -230,7 +237,10 @@ class DCert:
         self.endpoint = self.endpoint.replace("@", ".")
 
         try:
-            ldap_servers = dns.resolver.resolve(
+            # Create a custom resolver with configurable timeout for DNS lookups
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = self.dns_timeout
+            ldap_servers = resolver.resolve(
                 "_ldap._tcp." + self.endpoint, 'SRV').response.answer[0].items
             error = False
 
@@ -278,7 +288,7 @@ class DCert:
             for s in servers:
                 url = "ldap://%(host)s:%(port)s" % s
                 l = ldap.initialize(url)
-                l.set_option(ldap.OPT_NETWORK_TIMEOUT, 10.0)
+                l.set_option(ldap.OPT_NETWORK_TIMEOUT, self.ldap_timeout)
 
                 result_id = l.search("", ldap.SCOPE_SUBTREE,
                                      "mail=%s" % self.endpoint, None)
@@ -305,12 +315,12 @@ class DCert:
 
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                    fh.writelines(base64.encodestring(c).rstrip())
+                    fh.writelines(base64.encodebytes(c).rstrip().decode('utf-8'))
                     fh.writelines("\n-----END CERTIFICATE-----\n")
                     fh.close()
                 # Create a cert object so we can inspect it for more details
                 cert_string = "-----BEGIN CERTIFICATE-----\n" +\
-                              base64.encodestring(c).rstrip() +\
+                              base64.encodebytes(c).rstrip().decode('utf-8') +\
                               "\n-----END CERTIFICATE-----\n"
                 x509 = crypto.load_certificate(
                     crypto.FILETYPE_PEM, cert_string)
@@ -348,7 +358,10 @@ class DCert:
         response = ""
         endpoint = self.endpoint.replace("@", ".")
         try:
-            answers = dns.resolver.query(endpoint, 'CERT')
+            # Create a custom resolver with configurable timeout
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = self.dns_timeout
+            answers = resolver.query(endpoint, 'CERT')
             i = 1
             print("i--->",i)
             for rdata in answers:
@@ -360,13 +373,13 @@ class DCert:
                         fn = "%s.%s" % (endpoint, file_extension)
                     fh = open(fn, "w")
                     fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                    fh.writelines(base64.encodestring(
-                        rdata.certificate).rstrip())
+                    fh.writelines(base64.encodebytes(
+                        rdata.certificate).rstrip().decode('utf-8'))
                     fh.writelines("\n-----END CERTIFICATE-----\n")
                     fh.close()
                     i += 1
                 response = response + "-----BEGIN CERTIFICATE-----\n" + \
-                    base64.encodestring(rdata.certificate).rstrip() + \
+                    base64.encodebytes(rdata.certificate).rstrip().decode('utf-8') + \
                     "\n-----END CERTIFICATE-----\n"
             return response
 
@@ -392,7 +405,10 @@ class DCert:
         response = ""
         self.endpoint = self.endpoint.replace("@", ".")
         try:
-            ldap_servers = dns.resolver.query(
+            # Create a custom resolver with configurable timeout for DNS lookups
+            resolver = dns.resolver.Resolver()
+            resolver.lifetime = self.dns_timeout
+            ldap_servers = resolver.query(
                 "_ldap._tcp." + self.endpoint, 'SRV').response.answer[0].items
             error = False
         except dns.resolver.NoNameservers:
@@ -422,6 +438,7 @@ class DCert:
         for s in servers:
             url = "ldap://%(host)s:%(port)s" % s
             l = ldap.initialize(url)
+            l.set_option(ldap.OPT_NETWORK_TIMEOUT, self.ldap_timeout)
             result_id = l.search("", ldap.SCOPE_SUBTREE,
                                  "mail=%s" % self.endpoint, None)
             while True:
@@ -444,11 +461,11 @@ class DCert:
                 fn = "%s.%s" % (self.endpoint, file_extension)
                 fh = open(fn, "w")
                 fh.writelines("-----BEGIN CERTIFICATE-----\n")
-                fh.writelines(base64.encodebytes(c).rstrip())
+                fh.writelines(base64.encodebytes(c).rstrip().decode('utf-8'))
                 fh.writelines("\n-----END CERTIFICATE-----\n")
                 fh.close()
             response = response + "-----BEGIN CERTIFICATE-----\n" + \
-                base64.encodebytes(c).rstrip() + \
+                base64.encodebytes(c).rstrip().decode('utf-8') + \
                 "\n-----END CERTIFICATE-----\n"
             i += 1
 
